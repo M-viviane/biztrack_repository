@@ -6,9 +6,12 @@ app.use(express.json());
 
 app.get("/", (req, res) => {
   res.json({
-    message: "Welcome to BizTrack API"
+    message: "Welcome to BizTrack API welcome again"
   });
 });
+app.post('/product',(req,res)=>{
+  
+})
 
 
 
