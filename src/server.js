@@ -6,7 +6,7 @@ app.use(express.json());
 
 app.get("/", (req, res) => {
   res.json({
-    message: "Welcome to BizTrack API welcome again"
+    message: "welcome to biztrack project and it is special project so welcome to biz track again"
   });
 });
 app.post('/product',(req,res)=>{
