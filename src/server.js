@@ -1,11 +1,16 @@
 const express = require("express");
-const helmet = require("helmet");
 
 const app = express();
 
-app.use(helmet());
+const productRoutes = require("./routes/productRoutes");
+
+// Middleware
 app.use(express.json());
 
+// Product routes
+app.use("/api/products", productRoutes);
+
+// Start server
 app.listen(5000, () => {
   console.log("BizTrack server running on port 5000");
 });

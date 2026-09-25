@@ -1,0 +1,127 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Product {
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  description  String?
+  id           Int      @id @default(autoincrement())
+  name         String
+  quantity     Int      @default(0)
+  sellingPrice Decimal  @db.Decimal
+  sku          String   @unique
+  unitCost     Decimal  @db.Decimal
+  updatedAt    DateTime @default(now()) @db.Timestamptz(6)
+}
+
+model categories {
+  id          Int        @id @default(autoincrement())
+  name        String?    @db.VarChar(255)
+  description String?    @db.VarChar(255)
+  created_at  DateTime?  @db.Timestamptz(6)
+  products    products[]
+}
+
+model products {
+  id             Int              @id
+  name           String?          @db.VarChar(255)
+  sku            String           @unique(map: "sku") @db.VarChar(255)
+  category_id    Int?
+  cost_price     Int?
+  selling_price  Int?
+  unit           String?          @db.VarChar(255)
+  categories     categories?      @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "product_category_id_fkey")
+  purchase_items purchase_items[]
+  sale_items     sale_items[]
+}
+
+model purchase_items {
+  id          Int        @id @default(autoincrement())
+  purchase_id Int?
+  product_id  Int?
+  quantity    Int?
+  unit_cost   Decimal?   @db.Decimal(255, 0)
+  total_cost  Decimal?   @db.Decimal(255, 0)
+  purchases   purchases? @relation(fields: [purchase_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "purchase_item_purchase_id_fkey")
+  products    products?  @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([purchase_id], map: "fki_purchase_item_purchase_id_fkey")
+  @@index([product_id], map: "fki_purchase_items_product_id_fkey")
+}
+
+model purchases {
+  id             Int              @id @default(autoincrement())
+  total_amount   Int?             @map("total amount")
+  purchase_datee DateTime?        @map("purchase datee") @db.Timestamptz(6)
+  created_at     DateTime?        @db.Timestamptz(6)
+  supplier_id    Int?
+  user_id        Int?
+  purchase_items purchase_items[]
+  suppliers      suppliers?       @relation(fields: [supplier_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "purchase_supplier_id_fkey")
+  users          users?           @relation(fields: [user_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "purchase_user_id_fkey")
+
+  @@index([supplier_id], map: "fki_purchase_supplier_id_fkey")
+  @@index([user_id], map: "fki_purchase_user_id_fkey")
+  @@index([id], map: "fki_supplier_id")
+}
+
+model roles {
+  id          Int       @id @default(autoincrement())
+  name        String?   @db.VarChar(255)
+  description String?   @db.VarChar(255)
+  created_at  DateTime? @db.Timestamptz(6)
+  users       users[]
+}
+
+model sale_items {
+  id          Int       @id @default(autoincrement())
+  sale_id     Int?
+  product_id  Int?
+  quantity    Int?
+  unit_price  Decimal?  @db.Decimal(255, 0)
+  total_price Decimal?  @db.Decimal(255, 0)
+  products    products? @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  sales       sales?    @relation(fields: [sale_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([product_id], map: "fki_sale_items_product_id_fkey")
+  @@index([sale_id], map: "fki_sale_items_sale_id_fkey")
+}
+
+model sales {
+  id           Int          @id @default(autoincrement())
+  user_id      Int?
+  total_amount Decimal?     @db.Decimal(255, 0)
+  sale_date    DateTime?    @db.Timestamptz(6)
+  created_at   DateTime?    @db.Timestamptz(6)
+  sale_items   sale_items[]
+  users        users?       @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([user_id], map: "fki_u")
+}
+
+model suppliers {
+  id         Int         @id @default(autoincrement())
+  name       String?     @db.VarChar(255)
+  phone      String?     @db.VarChar(255)
+  email      String?     @db.VarChar(255)
+  address    String?     @db.VarChar(255)
+  created_at String?     @db.VarChar
+  purchases  purchases[]
+}
+
+model users {
+  id         Int         @id
+  name       String?     @db.VarChar(255)
+  email      String?     @db.VarChar(255)
+  password   String?     @db.VarChar(255)
+  role_id    Int?
+  created_at DateTime?   @db.Timestamptz(6)
+  updated_at DateTime?   @db.Timestamptz(6)
+  purchases  purchases[]
+  sales      sales[]
+  roles      roles?      @relation(fields: [role_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "user_role_id_fkey")
+}
