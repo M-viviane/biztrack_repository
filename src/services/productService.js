@@ -5,10 +5,11 @@ const createProduct = async (data) => {
     data: {
       name: data.name,
       sku: data.sku,
+      category_id: data.category_id,
+      cost_price: data.cost_price,
+      selling_price: data.selling_price,
+      unit: data.unit,
       description: data.description,
-      unitCost: data.unitCost,
-      sellingPrice: data.sellingPrice,
-      quantity: data.quantity || 0,
     },
   });
 
@@ -45,10 +46,11 @@ const updateProduct = async (id, data) => {
     data: {
       name: data.name,
       sku: data.sku,
+      category_id: data.category_id,
+      cost_price: data.cost_price,
+      selling_price: data.selling_price,
+      unit: data.unit,
       description: data.description,
-      unitCost: data.unitCost,
-      sellingPrice: data.sellingPrice,
-      quantity: data.quantity,
     },
   });
 
