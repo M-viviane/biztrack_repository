@@ -1,0 +1,13 @@
+// use prisma-8
+
+model Product {
+  id           Int      @id @default(autoincrement())
+  name         String
+  sku          String   @unique
+  description  String?
+  unitCost     Decimal
+  sellingPrice Decimal
+  quantity     Int      @default(0)
+  createdAt    DateTime = temporal.createdAt()
+  updatedAt    DateTime = temporal.updatedAt()
+}

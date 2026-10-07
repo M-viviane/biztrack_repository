@@ -3,6 +3,7 @@ const prisma = require("../config/prisma");
 // =========================
 // CREATE CATEGORY
 // =========================
+
 const createCategory = async (data) => {
   if (!data.name) {
     throw new Error("Category name is required");
@@ -13,17 +14,23 @@ const createCategory = async (data) => {
       name: data.name,
       description: data.description || null,
       created_at: new Date(),
+      isActive: true,
     },
   });
 
   return category;
 };
 
+
 // =========================
-// GET ALL CATEGORIES
+// GET ALL ACTIVE CATEGORIES
 // =========================
+
 const getCategories = async () => {
   const categories = await prisma.categories.findMany({
+    where: {
+      isActive: true,
+    },
     include: {
       product: true,
     },
@@ -35,13 +42,16 @@ const getCategories = async () => {
   return categories;
 };
 
+
 // =========================
 // GET CATEGORY BY ID
 // =========================
+
 const getCategoryById = async (id) => {
-  const category = await prisma.categories.findUnique({
+  const category = await prisma.categories.findFirst({
     where: {
       id: Number(id),
+      isActive: true,
     },
     include: {
       product: true,
@@ -55,13 +65,16 @@ const getCategoryById = async (id) => {
   return category;
 };
 
+
 // =========================
 // UPDATE CATEGORY
 // =========================
+
 const updateCategory = async (id, data) => {
-  const existingCategory = await prisma.categories.findUnique({
+  const existingCategory = await prisma.categories.findFirst({
     where: {
       id: Number(id),
+      isActive: true,
     },
   });
 
@@ -82,16 +95,17 @@ const updateCategory = async (id, data) => {
   return category;
 };
 
+
 // =========================
 // DELETE CATEGORY
+// SOFT DELETE
 // =========================
+
 const deleteCategory = async (id) => {
-  const existingCategory = await prisma.categories.findUnique({
+  const existingCategory = await prisma.categories.findFirst({
     where: {
       id: Number(id),
-    },
-    include: {
-      product: true,
+      isActive: true,
     },
   });
 
@@ -99,24 +113,23 @@ const deleteCategory = async (id) => {
     throw new Error("Category not found");
   }
 
-  if (existingCategory.product.length > 0) {
-    throw new Error(
-      "Cannot delete category because it has products"
-    );
-  }
-
-  const category = await prisma.categories.delete({
+  const category = await prisma.categories.update({
     where: {
       id: Number(id),
+    },
+    data: {
+      isActive: false,
     },
   });
 
   return category;
 };
 
+
 // =========================
 // EXPORT
 // =========================
+
 module.exports = {
   createCategory,
   getCategories,

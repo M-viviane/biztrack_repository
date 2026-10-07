@@ -8,21 +8,54 @@ const {
   deleteProduct,
 } = require("../controllers/productController");
 
+const authenticateToken = require("../middleware/authMiddleware");
+const requireRole = require("../middleware/roleMiddleware");
+
 const router = express.Router();
 
 // POST - Create product
-router.post("/", createProduct);
+// Manager only
+router.post(
+  "/",
+  authenticateToken,
+  requireRole("MANAGER"),
+  createProduct
+);
 
 // GET - Get all products
-router.get("/", getProducts);
+// Manager and Staff
+router.get(
+  "/",
+  authenticateToken,
+  requireRole("MANAGER", "STAFF"),
+  getProducts
+);
 
 // GET - Get one product
-router.get("/:id", getProductById);
+// Manager and Staff
+router.get(
+  "/:id",
+  authenticateToken,
+  requireRole("MANAGER", "STAFF"),
+  getProductById
+);
 
 // PUT - Update product
-router.put("/:id", updateProduct);
+// Manager only
+router.put(
+  "/:id",
+  authenticateToken,
+  requireRole("MANAGER"),
+  updateProduct
+);
 
 // DELETE - Delete product
-router.delete("/:id", deleteProduct);
+// Manager only
+router.delete(
+  "/:id",
+  authenticateToken,
+  requireRole("MANAGER"),
+  deleteProduct
+);
 
 module.exports = router;

@@ -10,7 +10,10 @@ const purchaseRoutes=require("./routes/purchaseRoutes");
 const saleRoutes=require("./routes/saleRoutes");
 const expenseRoutes = require("./routes/expenseRoutes");
 const reportRoutes = require("./routes/reportRoutes");
-const dashboardRoutes=require("./routes/dashboardRoutes")
+const dashboardRoutes=require("./routes/dashboardRoutes");
+const authRoutes = require("./routes/authRoutes");
+const adminRoutes = require("./routes/adminRoutes");
+
 
 
 
@@ -37,6 +40,10 @@ app.use("/api/expenses", expenseRoutes);
 app.use("/api/reports", reportRoutes);
 //dashboardRoutes
 app.use("/api/dashboard", dashboardRoutes);
+//authenticationRoutes
+app.use("/api/auth", authRoutes);
+//adminRoutes
+app.use("/api/admin", adminRoutes);
 // Start server
 app.listen(5000, () => {
   console.log("BizTrack server running on port 5000");
