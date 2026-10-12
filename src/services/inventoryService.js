@@ -147,7 +147,7 @@ const getInventory = async () => {
       product: true,
     },
     orderBy: {
-      id: "desc",
+      id: "asc",
     },
   });
 };
@@ -181,7 +181,7 @@ const getMovements = async () => {
       product: true,
     },
     orderBy: {
-      createdAt: "desc",
+      createdAt: "asc",
     },
   });
 };
@@ -198,7 +198,7 @@ const getMovementsByProduct = async (productId) => {
       product: true,
     },
     orderBy: {
-      createdAt: "desc",
+      createdAt: "asc",
     },
   });
 };

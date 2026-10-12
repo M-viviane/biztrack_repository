@@ -1,56 +1,30 @@
 const roleMiddleware = (...allowedRoles) => {
   return (req, res, next) => {
 
-    // ===============================
-    // CHECK AUTHENTICATION
-    // ===============================
-
+    // Check if user is authenticated
     if (!req.user) {
       return res.status(401).json({
-        message: "Authentication required"
+        message: "Unauthorized. Please login first."
       });
     }
 
-    // ===============================
-    // DEBUG INFORMATION
-    // ===============================
+    // Get user's role
+    const userRole = req.user.role;
 
-    console.log("User role:", req.user.role);
+    console.log("========== ROLE CHECK ==========");
+    console.log("User role:", userRole);
     console.log("Allowed roles:", allowedRoles);
 
-    // ===============================
-    // CHECK IF USER HAS A ROLE
-    // ===============================
+    // Check if user's role is allowed
+    if (!allowedRoles.includes(userRole)) {
+      console.log("ACCESS DENIED");
 
-    if (!req.user.role) {
-      return res.status(403).json({
-        message: "Access denied. No role assigned."
-      });
-    }
-
-    // ===============================
-    // CASE-INSENSITIVE ROLE CHECK
-    // ===============================
-
-    const userRole = req.user.role.toLowerCase();
-
-    const roles = allowedRoles.map((role) =>
-      role.toLowerCase()
-    );
-
-    // ===============================
-    // CHECK PERMISSION
-    // ===============================
-
-    if (!roles.includes(userRole)) {
       return res.status(403).json({
         message: "Access denied. You do not have permission."
       });
     }
 
-    // ===============================
-    // ROLE IS ALLOWED
-    // ===============================
+    console.log("ACCESS GRANTED");
 
     next();
   };

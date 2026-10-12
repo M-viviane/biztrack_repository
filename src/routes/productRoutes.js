@@ -1,61 +1,54 @@
 const express = require("express");
 
-const {
-  createProduct,
-  getProducts,
-  getProductById,
-  updateProduct,
-  deleteProduct,
-} = require("../controllers/productController");
-
-const authenticateToken = require("../middleware/authMiddleware");
-const requireRole = require("../middleware/roleMiddleware");
-
 const router = express.Router();
 
-// POST - Create product
-// Manager only
+const productController = require("../controllers/productController");
+const authMiddleware = require("../middleware/authMiddleware");
+const roleMiddleware = require("../middleware/roleMiddleware");
+
+// GET ALL PRODUCTS
+// ADMIN, MANAGER and STAFF can view products
+router.get(
+  "/",
+  authMiddleware,
+  roleMiddleware("ADMIN", "MANAGER", "STAFF"),
+  productController.getProducts
+);
+
+// GET PRODUCT BY ID
+// ADMIN, MANAGER and STAFF can view a product
+router.get(
+  "/:id",
+  authMiddleware,
+  roleMiddleware("ADMIN", "MANAGER", "STAFF"),
+  productController.getProductById
+);
+
+// CREATE PRODUCT
+// Only ADMIN and MANAGER can create products
 router.post(
   "/",
-  authenticateToken,
-  requireRole("MANAGER"),
-  createProduct
+  authMiddleware,
+  roleMiddleware("ADMIN", "MANAGER"),
+  productController.createProduct
 );
 
-// GET - Get all products
-// Manager and Staff
-router.get(
-  "/",
-  authenticateToken,
-  requireRole("MANAGER", "STAFF"),
-  getProducts
-);
-
-// GET - Get one product
-// Manager and Staff
-router.get(
-  "/:id",
-  authenticateToken,
-  requireRole("MANAGER", "STAFF"),
-  getProductById
-);
-
-// PUT - Update product
-// Manager only
+// UPDATE PRODUCT
+// Only ADMIN and MANAGER can update products
 router.put(
   "/:id",
-  authenticateToken,
-  requireRole("MANAGER"),
-  updateProduct
+  authMiddleware,
+  roleMiddleware("ADMIN", "MANAGER"),
+  productController.updateProduct
 );
 
-// DELETE - Delete product
-// Manager only
+// DELETE PRODUCT
+// Only ADMIN can delete products
 router.delete(
   "/:id",
-  authenticateToken,
-  requireRole("MANAGER"),
-  deleteProduct
+  authMiddleware,
+  roleMiddleware("ADMIN"),
+  productController.deleteProduct
 );
 
 module.exports = router;

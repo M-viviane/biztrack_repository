@@ -1,45 +1,46 @@
+
 const prisma = require("../config/prisma");
 
-// ======================================================
+// ======================================
 // CREATE PURCHASE
-// ======================================================
+// ======================================
+const createPurchase = async ({ supplierId, userId, items }) => {
+  // Supplier and user are required
+  if (!supplierId) {
+    throw new Error("Supplier is required");
+  }
 
-const createPurchase = async ({
-  supplierId,
-  userId,
-  items,
-}) => {
-  if (!items || !Array.isArray(items) || items.length === 0) {
+  if (!userId) {
+    throw new Error("User is required");
+  }
+
+  // Purchase must contain at least one item
+  if (!Array.isArray(items) || items.length === 0) {
     throw new Error("Purchase must contain at least one item");
   }
 
-  const result = await prisma.$transaction(async (tx) => {
+  return await prisma.$transaction(async (tx) => {
     let totalAmount = 0;
 
-    // Check products and calculate total
+    // Validate products and calculate total purchase amount
     for (const item of items) {
       const productId = Number(item.productId);
       const quantity = Number(item.quantity);
       const unitCost = Number(item.unitCost);
 
-      if (!productId || !quantity || unitCost === undefined) {
-        throw new Error(
-          "productId, quantity and unitCost are required"
-        );
-      }
-
-      if (quantity <= 0) {
-        throw new Error("Quantity must be greater than 0");
-      }
-
-      if (unitCost < 0) {
-        throw new Error("Unit cost cannot be negative");
+      if (
+        !Number.isInteger(productId) ||
+        productId <= 0 ||
+        !Number.isInteger(quantity) ||
+        quantity <= 0 ||
+        !Number.isFinite(unitCost) ||
+        unitCost < 0
+      ) {
+        throw new Error("Invalid purchase item");
       }
 
       const product = await tx.product.findUnique({
-        where: {
-          id: productId,
-        },
+        where: { id: productId },
       });
 
       if (!product) {
@@ -49,46 +50,75 @@ const createPurchase = async ({
       totalAmount += quantity * unitCost;
     }
 
-    // Create purchase
+    // Verify that the supplier exists
+    const supplier = await tx.suppliers.findUnique({
+      where: { id: Number(supplierId) },
+    });
+
+    if (!supplier) {
+      throw new Error("Supplier not found");
+    }
+
+    // Verify that the user exists
+    const user = await tx.users.findUnique({
+      where: { id: Number(userId) },
+    });
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Create the purchase and include supplier and user information
     const purchase = await tx.purchases.create({
       data: {
-        supplier_id: supplierId ? Number(supplierId) : null,
-        user_id: userId ? Number(userId) : null,
+        supplier_id: Number(supplierId),
+        user_id: Number(userId),
         total_amount: totalAmount,
         purchase_datee: new Date(),
         created_at: new Date(),
       },
+      include: {
+        suppliers: true,
+        users: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role_id: true,
+            roles: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
     });
 
-    // Create purchase items + increase inventory
+    // Create purchase items, increase stock, and record movements
     for (const item of items) {
       const productId = Number(item.productId);
       const quantity = Number(item.quantity);
       const unitCost = Number(item.unitCost);
 
-      const totalCost = quantity * unitCost;
-
-      // Create purchase item
       await tx.purchase_items.create({
         data: {
           purchase_id: purchase.id,
           product_id: productId,
           quantity,
           unit_cost: unitCost,
-          total_cost: totalCost,
+          total_cost: quantity * unitCost,
         },
       });
 
       // Increase inventory
       await tx.Inventory.upsert({
-        where: {
-          productId,
-        },
+        where: { productId },
         update: {
           quantity: {
             increment: quantity,
           },
-          updatedAt: new Date(),
         },
         create: {
           productId,
@@ -96,7 +126,7 @@ const createPurchase = async ({
         },
       });
 
-      // Record inventory movement
+      // Record stock movement
       await tx.InventoryMovement.create({
         data: {
           productId,
@@ -107,22 +137,32 @@ const createPurchase = async ({
       });
     }
 
+    // Return purchase with supplier and user information
     return purchase;
   });
-
-  return result;
 };
 
-
-// ======================================================
+// ======================================
 // GET ALL PURCHASES
-// ======================================================
-
+// ======================================
 const getPurchases = async () => {
-  const purchases = await prisma.purchases.findMany({
+  return await prisma.purchases.findMany({
     include: {
       suppliers: true,
-      users: true,
+      users: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role_id: true,
+          roles: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
       purchase_items: {
         include: {
           product: true,
@@ -130,22 +170,18 @@ const getPurchases = async () => {
       },
     },
     orderBy: {
-      id: "desc",
+      id: "asc",
     },
   });
-
-  return purchases;
 };
 
-
-// ======================================================
+// ======================================
 // GET PURCHASE BY ID
-// ======================================================
-
+// ======================================
 const getPurchaseById = async (id) => {
   const purchaseId = Number(id);
 
-  if (!purchaseId) {
+  if (!Number.isInteger(purchaseId) || purchaseId <= 0) {
     throw new Error("Invalid purchase ID");
   }
 
@@ -155,7 +191,20 @@ const getPurchaseById = async (id) => {
     },
     include: {
       suppliers: true,
-      users: true,
+      users: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role_id: true,
+          roles: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
       purchase_items: {
         include: {
           product: true,
@@ -171,363 +220,109 @@ const getPurchaseById = async (id) => {
   return purchase;
 };
 
-
-// ======================================================
+// ======================================
 // UPDATE PURCHASE
-// ======================================================
-
-const updatePurchase = async (
-  id,
-  {
-    supplierId,
-    userId,
-    items,
-  }
-) => {
+// ======================================
+const updatePurchase = async (id, data) => {
   const purchaseId = Number(id);
 
-  if (!purchaseId) {
+  if (!Number.isInteger(purchaseId) || purchaseId <= 0) {
     throw new Error("Invalid purchase ID");
   }
 
-  if (!items || !Array.isArray(items) || items.length === 0) {
-    throw new Error("Purchase must contain at least one item");
-  }
-
-  const result = await prisma.$transaction(async (tx) => {
-
-    // ------------------------------------------
-    // 1. Find existing purchase
-    // ------------------------------------------
-
-    const existingPurchase =
-      await tx.purchases.findUnique({
-        where: {
-          id: purchaseId,
-        },
-        include: {
-          purchase_items: true,
-        },
-      });
-
-    if (!existingPurchase) {
-      throw new Error("Purchase not found");
-    }
-
-
-    // ------------------------------------------
-    // 2. Reverse old inventory
-    // ------------------------------------------
-
-    for (const oldItem of existingPurchase.purchase_items) {
-
-      if (!oldItem.product_id || !oldItem.quantity) {
-        continue;
-      }
-
-      const inventory =
-        await tx.Inventory.findUnique({
-          where: {
-            productId: oldItem.product_id,
-          },
-        });
-
-      if (!inventory) {
-        throw new Error(
-          `Inventory not found for product ${oldItem.product_id}`
-        );
-      }
-
-      if (inventory.quantity < oldItem.quantity) {
-        throw new Error(
-          `Cannot update purchase. Product ${oldItem.product_id} does not have enough stock`
-        );
-      }
-
-      await tx.Inventory.update({
-        where: {
-          productId: oldItem.product_id,
-        },
-        data: {
-          quantity: {
-            decrement: oldItem.quantity,
-          },
-          updatedAt: new Date(),
-        },
-      });
-
-      // Record reverse movement
-      await tx.InventoryMovement.create({
-        data: {
-          productId: oldItem.product_id,
-          quantity: oldItem.quantity,
-          type: "OUT",
-          reference: `PURCHASE-UPDATE-OLD-${purchaseId}`,
-        },
-      });
-    }
-
-
-    // ------------------------------------------
-    // 3. Delete old purchase items
-    // ------------------------------------------
-
-    await tx.purchase_items.deleteMany({
-      where: {
-        purchase_id: purchaseId,
-      },
-    });
-
-
-    // ------------------------------------------
-    // 4. Validate new items
-    // ------------------------------------------
-
-    let totalAmount = 0;
-
-    for (const item of items) {
-
-      const productId = Number(item.productId);
-      const quantity = Number(item.quantity);
-      const unitCost = Number(item.unitCost);
-
-      if (!productId || !quantity || unitCost === undefined) {
-        throw new Error(
-          "productId, quantity and unitCost are required"
-        );
-      }
-
-      if (quantity <= 0) {
-        throw new Error(
-          "Quantity must be greater than 0"
-        );
-      }
-
-      if (unitCost < 0) {
-        throw new Error(
-          "Unit cost cannot be negative"
-        );
-      }
-
-      const product =
-        await tx.product.findUnique({
-          where: {
-            id: productId,
-          },
-        });
-
-      if (!product) {
-        throw new Error(
-          `Product ${productId} not found`
-        );
-      }
-
-      totalAmount += quantity * unitCost;
-    }
-
-
-    // ------------------------------------------
-    // 5. Update purchase
-    // ------------------------------------------
-
-    const updatedPurchase =
-      await tx.purchases.update({
-        where: {
-          id: purchaseId,
-        },
-        data: {
-          supplier_id:
-            supplierId ? Number(supplierId) : null,
-
-          user_id:
-            userId ? Number(userId) : null,
-
-          total_amount: totalAmount,
-        },
-      });
-
-
-    // ------------------------------------------
-    // 6. Create new items + stock IN
-    // ------------------------------------------
-
-    for (const item of items) {
-
-      const productId = Number(item.productId);
-      const quantity = Number(item.quantity);
-      const unitCost = Number(item.unitCost);
-
-      const totalCost =
-        quantity * unitCost;
-
-      await tx.purchase_items.create({
-        data: {
-          purchase_id: purchaseId,
-          product_id: productId,
-          quantity,
-          unit_cost: unitCost,
-          total_cost: totalCost,
-        },
-      });
-
-
-      // Increase inventory
-      await tx.Inventory.upsert({
-        where: {
-          productId,
-        },
-        update: {
-          quantity: {
-            increment: quantity,
-          },
-          updatedAt: new Date(),
-        },
-        create: {
-          productId,
-          quantity,
-        },
-      });
-
-
-      // Record movement
-      await tx.InventoryMovement.create({
-        data: {
-          productId,
-          quantity,
-          type: "IN",
-          reference: `PURCHASE-UPDATE-${purchaseId}`,
-        },
-      });
-    }
-
-    return updatedPurchase;
+  const purchase = await prisma.purchases.findUnique({
+    where: { id: purchaseId },
   });
 
-  return result;
+  if (!purchase) {
+    throw new Error("Purchase not found");
+  }
+
+  if (!data.supplierId) {
+    throw new Error("Supplier is required");
+  }
+
+  if (!data.userId) {
+    throw new Error("User is required");
+  }
+
+  // Verify supplier and user exist
+  const supplier = await prisma.suppliers.findUnique({
+    where: { id: Number(data.supplierId) },
+  });
+
+  if (!supplier) {
+    throw new Error("Supplier not found");
+  }
+
+  const user = await prisma.users.findUnique({
+    where: { id: Number(data.userId) },
+  });
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  return await prisma.purchases.update({
+    where: { id: purchaseId },
+    data: {
+      supplier_id: Number(data.supplierId),
+      user_id: Number(data.userId),
+    },
+    include: {
+      suppliers: true,
+      users: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role_id: true,
+          roles: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
+    },
+  });
 };
 
-
-// ======================================================
+// ======================================
 // DELETE PURCHASE
-// ======================================================
-
+// ======================================
 const deletePurchase = async (id) => {
   const purchaseId = Number(id);
 
-  if (!purchaseId) {
+  if (!Number.isInteger(purchaseId) || purchaseId <= 0) {
     throw new Error("Invalid purchase ID");
   }
 
-  const result = await prisma.$transaction(async (tx) => {
-
-    // ------------------------------------------
-    // 1. Find purchase
-    // ------------------------------------------
-
-    const purchase =
-      await tx.purchases.findUnique({
-        where: {
-          id: purchaseId,
-        },
-        include: {
-          purchase_items: true,
-        },
-      });
-
-    if (!purchase) {
-      throw new Error("Purchase not found");
-    }
-
-
-    // ------------------------------------------
-    // 2. Reverse inventory
-    // ------------------------------------------
-
-    for (const item of purchase.purchase_items) {
-
-      if (!item.product_id || !item.quantity) {
-        continue;
-      }
-
-      const inventory =
-        await tx.Inventory.findUnique({
-          where: {
-            productId: item.product_id,
-          },
-        });
-
-      if (!inventory) {
-        throw new Error(
-          `Inventory not found for product ${item.product_id}`
-        );
-      }
-
-      if (inventory.quantity < item.quantity) {
-        throw new Error(
-          `Cannot delete purchase. Product ${item.product_id} does not have enough stock`
-        );
-      }
-
-
-      // Decrease inventory
-      await tx.Inventory.update({
-        where: {
-          productId: item.product_id,
-        },
-        data: {
-          quantity: {
-            decrement: item.quantity,
-          },
-          updatedAt: new Date(),
-        },
-      });
-
-
-      // Record OUT movement
-      await tx.InventoryMovement.create({
-        data: {
-          productId: item.product_id,
-          quantity: item.quantity,
-          type: "OUT",
-          reference: `PURCHASE-DELETE-${purchaseId}`,
-        },
-      });
-    }
-
-
-    // ------------------------------------------
-    // 3. Delete purchase items
-    // ------------------------------------------
-
-    await tx.purchase_items.deleteMany({
-      where: {
-        purchase_id: purchaseId,
-      },
-    });
-
-
-    // ------------------------------------------
-    // 4. Delete purchase
-    // ------------------------------------------
-
-    const deletedPurchase =
-      await tx.purchases.delete({
-        where: {
-          id: purchaseId,
-        },
-      });
-
-    return deletedPurchase;
+  const purchase = await prisma.purchases.findUnique({
+    where: { id: purchaseId },
   });
 
-  return result;
+  if (!purchase) {
+    throw new Error("Purchase not found");
+  }
+
+  return await prisma.$transaction(async (tx) => {
+    // Delete related purchase items first
+    await tx.purchase_items.deleteMany({
+      where: { purchase_id: purchaseId },
+    });
+
+    // Delete the purchase record
+    return await tx.purchases.delete({
+      where: { id: purchaseId },
+    });
+  });
 };
 
-
-// ======================================================
-// EXPORT ALL FUNCTIONS
-// ======================================================
-
+// ======================================
+// EXPORT FUNCTIONS
+// ======================================
 module.exports = {
   createPurchase,
   getPurchases,
@@ -535,3 +330,4 @@ module.exports = {
   updatePurchase,
   deletePurchase,
 };
+

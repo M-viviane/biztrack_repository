@@ -2,49 +2,161 @@ const express = require("express");
 
 const app = express();
 
-const productRoutes = require("./routes/productRoutes");
-const inventoryRoutes=require("./routes/inventoryRoutes");
-const categoryRoutes=require("./routes/categoryRoutes");
-const healthRoutes = require("./routes/healthRoutes");
-const purchaseRoutes=require("./routes/purchaseRoutes");
-const saleRoutes=require("./routes/saleRoutes");
-const expenseRoutes = require("./routes/expenseRoutes");
-const reportRoutes = require("./routes/reportRoutes");
-const dashboardRoutes=require("./routes/dashboardRoutes");
-const authRoutes = require("./routes/authRoutes");
-const adminRoutes = require("./routes/adminRoutes");
+// ========================================
+// GLOBAL MIDDLEWARE
+// ========================================
 
-
-
-
-
-// Middleware
 app.use(express.json());
 
-// Product routes
+// ========================================
+// ROUTES
+// ========================================
+
+const productRoutes = require("./routes/productRoutes");
+const inventoryRoutes = require("./routes/inventoryRoutes");
+const categoryRoutes = require("./routes/categoryRoutes");
+const healthRoutes = require("./routes/healthRoutes");
+const purchaseRoutes = require("./routes/purchaseRoutes");
+const saleRoutes = require("./routes/saleRoutes");
+const expenseRoutes = require("./routes/expenseRoutes");
+const reportRoutes = require("./routes/reportRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
+const authRoutes = require("./routes/authRoutes");
+const adminRoutes = require("./routes/adminRoutes");
+const supplierRoutes = require("./routes/supplierRoutes");
+const userRoutes = require("./routes/userRoutes");
+
+// ========================================
+// AUTHENTICATION & AUTHORIZATION
+// ========================================
+
+const authMiddleware = require("./middleware/authMiddleware");
+const roleMiddleware = require("./middleware/roleMiddleware");
+
+// ========================================
+// TASK 40 — ADMIN TEST ROUTE
+// ========================================
+
+app.get(
+  "/api/admin-test",
+  authMiddleware,
+  roleMiddleware("ADMIN"),
+  (req, res) => {
+    res.json({
+      message: "Welcome Admin! You have access."
+    });
+  }
+);
+
+// ========================================
+// TASK 41 — MANAGER TEST ROUTE
+// ========================================
+
+app.get(
+  "/api/manager-test",
+  authMiddleware,
+  roleMiddleware("MANAGER"),
+  (req, res) => {
+    res.json({
+      message: "Welcome Manager! You have access."
+    });
+  }
+);
+// ========================================
+// TASK 42 — STAFF TEST ROUTE
+// ========================================
+
+app.get(
+  "/api/staff-test",
+  authMiddleware,
+  roleMiddleware("STAFF"),
+  (req, res) => {
+    res.json({
+      message: "Welcome Staff! You have access."
+    });
+  }
+);
+
+// =============================================
+// PRODUCT ROUTES
+// =============================================
+
 app.use("/api/products", productRoutes);
-//inventory routes
+
+// ==============================================
+// INVENTORY ROUTES
+// ==============================================
+
 app.use("/api/inventory", inventoryRoutes);
-//category routes
+//===============================================
+//supplier routes
+//===============================================
+
+app.use("/api/suppliers", supplierRoutes);
+
+// ========================================
+// CATEGORY ROUTES
+// ========================================
+
 app.use("/api/category", categoryRoutes);
-//health routes
+
+// ========================================
+// HEALTH ROUTES
+// ========================================
 
 app.use("/api/healthroutes", healthRoutes);
-//purchaseRoutes
+
+// ========================================
+// PURCHASE ROUTES
+// ========================================
+
 app.use("/api/purchase", purchaseRoutes);
-//saleRoutes
+//======================================
+//user Routes
+//=======================================
+
+app.use("/api/users", userRoutes);
+
+// ========================================
+// SALE ROUTES
+// ========================================
+
 app.use("/api/sales", saleRoutes);
-//expenseRoutes
+
+// ========================================
+// EXPENSE ROUTES
+// ========================================
+
 app.use("/api/expenses", expenseRoutes);
-//reportRoutes
+
+// ========================================
+// REPORT ROUTES
+// ========================================
+
 app.use("/api/reports", reportRoutes);
-//dashboardRoutes
+
+// ========================================
+// DASHBOARD ROUTES
+// ========================================
+
 app.use("/api/dashboard", dashboardRoutes);
-//authenticationRoutes
+
+// ========================================
+// AUTHENTICATION ROUTES
+// ========================================
+
 app.use("/api/auth", authRoutes);
-//adminRoutes
+
+// ========================================
+// ADMIN ROUTES
+// ========================================
+
 app.use("/api/admin", adminRoutes);
-// Start server
+
+// ========================================
+// START SERVER
+// ========================================
+
 app.listen(5000, () => {
   console.log("BizTrack server running on port 5000");
 });

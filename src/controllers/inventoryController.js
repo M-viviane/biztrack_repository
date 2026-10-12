@@ -53,7 +53,7 @@ const getInventory = async (req, res) => {
         product: true,
       },
       orderBy: {
-        id: "desc",
+        id: "asc",
       },
     });
 
@@ -106,7 +106,7 @@ const getMovements = async (req, res) => {
         product: true,
       },
       orderBy: {
-        createdAt: "desc",
+        createdAt: "asc",
       },
     });
 
@@ -134,7 +134,7 @@ const getMovementsByProduct = async (req, res) => {
         product: true,
       },
       orderBy: {
-        createdAt: "desc",
+        createdAt: "asc",
       },
     });
 

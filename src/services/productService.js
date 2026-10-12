@@ -42,7 +42,7 @@ const getProducts = async () => {
 
 // GET PRODUCT BY ID
 const getProductById = async (id) => {
-  const product = await prisma.product.findFirst({
+  const product = await prisma.product.findunique({
     where: {
       id: Number(id),
       isActive: true

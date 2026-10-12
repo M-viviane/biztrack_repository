@@ -46,6 +46,10 @@ const getDashboard = async () => {
     (item) => item.quantity <= 5
   ).length;
 
+ const highStockProducts = inventory.filter(
+    (item) => item.quantity >5
+  ).length;
+
   return {
     totalProducts,
     totalSales,
@@ -54,6 +58,7 @@ const getDashboard = async () => {
     profit,
     totalStock,
     lowStockProducts,
+    highStockProducts ,
   };
 };
 

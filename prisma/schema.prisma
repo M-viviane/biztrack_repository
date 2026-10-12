@@ -1,3 +1,4 @@
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -17,17 +18,17 @@ model categories {
 }
 
 model product {
-  id            Int      @id @default(autoincrement())
-  name          String?  @db.VarChar(255)
-  sku           String   @unique(map: "sku") @db.VarChar(255)
+  id            Int     @id @default(autoincrement())
+  name          String? @db.VarChar(255)
+  sku           String  @unique(map: "sku") @db.VarChar(255)
   category_id   Int?
   cost_price    Int?
   selling_price Int?
-  unit          String?  @db.VarChar(255)
+  unit          String? @db.VarChar(255)
   description   String?
-  isActive      Boolean  @default(true)
+  isActive      Boolean @default(true)
 
-  categories         categories?        @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "product_category_id_fkey")
+  categories         categories?         @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "product_category_id_fkey")
   purchase_items     purchase_items[]
   sale_items         sale_items[]
   inventory          Inventory?
@@ -54,13 +55,14 @@ model purchases {
   total_amount   Int?      @map("total amount")
   purchase_datee DateTime? @map("purchase datee") @db.Timestamptz(6)
   created_at     DateTime? @db.Timestamptz(6)
-  supplier_id    Int?
-  user_id        Int?
+  supplier_id    Int
+  user_id        Int
+
+  // Required relations: every purchase must have a supplier and a user.
+  suppliers suppliers @relation(fields: [supplier_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "purchase_supplier_id_fkey")
+  users     users     @relation(fields: [user_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "purchase_user_id_fkey")
 
   purchase_items purchase_items[]
-
-  suppliers suppliers? @relation(fields: [supplier_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "purchase_supplier_id_fkey")
-  users     users?     @relation(fields: [user_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "purchase_user_id_fkey")
 
   @@index([supplier_id], map: "fki_supplier_id")
   @@index([user_id], map: "fki_user_id")
@@ -124,9 +126,9 @@ model users {
   created_at DateTime? @default(now())
   updated_at DateTime? @updatedAt
 
-  roles      roles?    @relation(fields: [role_id], references: [id])
-  purchases  purchases[]
-  sales      sales[]
+  roles     roles?     @relation(fields: [role_id], references: [id])
+  purchases purchases[]
+  sales     sales[]
 }
 
 model Inventory {
@@ -169,3 +171,4 @@ model Expense {
   createdAt   DateTime @default(now()) @db.Timestamptz(6)
   updatedAt   DateTime @default(now()) @db.Timestamptz(6)
 }
+
