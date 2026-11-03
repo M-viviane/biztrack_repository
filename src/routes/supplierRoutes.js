@@ -6,9 +6,22 @@ const {
   getSuppliers,
   getSupplierById,
 } = require("../controllers/supplierController");
+const authMiddleware = require("../middleware/authMiddleware");
+const roleMiddleware = require("../middleware/roleMiddleware");
 
-router.post("/", createSupplier);
-router.get("/", getSuppliers);
-router.get("/:id", getSupplierById);
+router.post("/",
+  authMiddleware,
+  roleMiddleware("ADMIN","MANAGER"),
+  createSupplier);
+router.get("/", 
+  authMiddleware,
+  roleMiddleware("ADMIN","MANAGER","STAFF"),
+  getSuppliers);
+router.get("/:id",
+  authMiddleware,
+  roleMiddleware("ADMIN","MANAGER","STAFF"),
+  getSupplierById);
 
 module.exports = router;
+authMiddleware,
+roleMiddleware("ADMIN","MANAGER","STAFF")

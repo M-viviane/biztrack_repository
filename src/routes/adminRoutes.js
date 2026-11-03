@@ -16,7 +16,7 @@ const roleMiddleware = require("../middleware/roleMiddleware");
 router.get(
   "/users",
   authMiddleware,
-  roleMiddleware("admin"),
+  roleMiddleware("ADMIN"),
   adminController.getAllUsers
 );
 

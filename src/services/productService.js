@@ -42,7 +42,7 @@ const getProducts = async () => {
 
 // GET PRODUCT BY ID
 const getProductById = async (id) => {
-  const product = await prisma.product.findunique({
+  const product = await prisma.product.findUnique({
     where: {
       id: Number(id),
       isActive: true
@@ -82,7 +82,7 @@ const updateProduct = async (id, data) => {
 
 // DELETE PRODUCT (SOFT DELETE)
 const deleteProduct = async (id) => {
-  const product = await prisma.product.update({
+  const product = await prisma.product.delete({
     where: {
       id: Number(id)
     },

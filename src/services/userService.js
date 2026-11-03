@@ -29,10 +29,18 @@ const getAllUsers = async () => {
 // ======================================
 // GET USER BY ID
 // ======================================
+
+// GET USER BY ID
 const getUserById = async (id) => {
-  return await prisma.users.findUnique({
+  const userId = Number(id);
+
+  if (!id || !Number.isInteger(userId) || userId <= 0) {
+    throw new Error("Valid user ID is required");
+  }
+
+  const user = await prisma.users.findUnique({
     where: {
-      id: Number(id),
+      id: userId,
     },
     select: {
       id: true,
@@ -40,7 +48,6 @@ const getUserById = async (id) => {
       email: true,
       role_id: true,
       created_at: true,
-
       roles: {
         select: {
           id: true,
@@ -49,7 +56,10 @@ const getUserById = async (id) => {
       },
     },
   });
+
+  return user;
 };
+
 
 // ======================================
 // EXPORT FUNCTIONS
