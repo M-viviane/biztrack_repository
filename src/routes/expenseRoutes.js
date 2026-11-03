@@ -3,15 +3,32 @@ const express = require("express");
 const router = express.Router();
 
 const expenseController = require("../controllers/expenseController");
+const authMiddleware = require("../middleware/authMiddleware");
+const roleMiddleware = require("../middleware/roleMiddleware");
 
-router.post("/", expenseController.createExpense);
+router.post("/", 
+    authMiddleware,
+    roleMiddleware("ADMIN","MANAGER"),
+    expenseController.createExpense);
 
-router.get("/", expenseController.getExpenses);
+router.get("/", 
+    authMiddleware,
+    roleMiddleware("ADMIN","MANAGER"),
+    expenseController.getExpenses);
 
-router.get("/:id", expenseController.getExpenseById);
+router.get("/:id", 
+    authMiddleware,
+    roleMiddleware("ADMIN","MANAGER"),
+    expenseController.getExpenseById);
 
-router.put("/:id", expenseController.updateExpense);
+router.put("/:id", 
+    authMiddleware,
+    roleMiddleware("ADMIN","MANAGER"),
+    expenseController.updateExpense);
 
-router.delete("/:id", expenseController.deleteExpense);
+router.delete("/:id", 
+    authMiddleware,
+    roleMiddleware("ADMIN"),
+    expenseController.deleteExpense);
 
 module.exports = router;
