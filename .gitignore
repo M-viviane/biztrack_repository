@@ -1,2 +1,15 @@
+# Dependencies
 node_modules/
+
+# Environment variables and secrets (never commit these)
 .env
+.env.*
+!.env.example
+
+# Data files: database dumps, exports and spreadsheets
+*.sql
+*.csv
+*.dump
+
+# Keep Prisma migration SQL files (they are source code, not data)
+!prisma/migrations/**/*.sql
