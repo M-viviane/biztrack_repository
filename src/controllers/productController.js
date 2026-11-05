@@ -75,10 +75,22 @@ const deleteProduct = async (req, res) => {
   try {
     const id = Number(req.params.id);
 
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({
+        message: "Invalid product id",
+      });
+    }
+
     const product = await productService.deleteProduct(id);
 
+    if (!product) {
+      return res.status(404).json({
+        message: "Product not found",
+      });
+    }
+
     res.status(200).json({
-      message: "Product deleted successfully",
+      message: "Product retired successfully",
       product,
     });
   } catch (error) {

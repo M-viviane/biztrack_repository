@@ -81,8 +81,20 @@ const updateProduct = async (id, data) => {
 
 
 // DELETE PRODUCT (SOFT DELETE)
+// The row is kept so past sales and purchases still point to it.
+// Returns null when no product has this id.
 const deleteProduct = async (id) => {
-  const product = await prisma.product.delete({
+  const existing = await prisma.product.findUnique({
+    where: {
+      id: Number(id)
+    }
+  });
+
+  if (!existing) {
+    return null;
+  }
+
+  const product = await prisma.product.update({
     where: {
       id: Number(id)
     },
