@@ -54,7 +54,25 @@ const getProductById = async (id) => {
 
 
 // UPDATE PRODUCT
+// Returns null when no product has this id.
+// Retired (inactive) products cannot be edited.
 const updateProduct = async (id, data) => {
+  const existing = await prisma.product.findUnique({
+    where: {
+      id: Number(id)
+    }
+  });
+
+  if (!existing) {
+    return null;
+  }
+
+  if (!existing.isActive) {
+    const error = new Error("Product is retired and cannot be edited");
+    error.statusCode = 409;
+    throw error;
+  }
+
   const product = await prisma.product.update({
     where: {
       id: Number(id)

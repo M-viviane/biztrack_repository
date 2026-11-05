@@ -26,6 +26,12 @@ const stockIn = async ({ productId, quantity, reference }) => {
     throw new Error("Product not found");
   }
 
+  // Retired products cannot receive new stock.
+  // (Stock-out is still allowed so leftover stock can be written off.)
+  if (!product.isActive) {
+    throw new Error("Product is inactive and cannot receive new stock");
+  }
+
   // Create inventory if it does not exist,
   // otherwise increase existing stock
   const inventory = await prisma.inventory.upsert({

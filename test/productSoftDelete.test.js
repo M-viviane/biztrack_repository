@@ -25,10 +25,32 @@ const fakeProductModel = {
   },
 };
 
-const fakePrisma = {
+const fakeInventoryModel = {
+  findUnique: async ({ where }) => ({ productId: where.productId, quantity: 10 }),
+  update: async ({ where }) => {
+    calls.push({ method: "inventory.update", where });
+    return { productId: where.productId, quantity: 9 };
+  },
+  upsert: async ({ where }) => {
+    calls.push({ method: "inventory.upsert", where });
+    return { productId: where.productId, quantity: 11 };
+  },
+};
+
+const fakeMovementModel = {
+  create: async ({ data }) => data,
+};
+
+const fakeModels = {
   product: fakeProductModel,
-  // Sales and purchases run inside a transaction; give them the same fake.
-  $transaction: async (fn) => fn({ product: fakeProductModel }),
+  inventory: fakeInventoryModel,
+  inventoryMovement: fakeMovementModel,
+};
+
+const fakePrisma = {
+  ...fakeModels,
+  // Sales, purchases and stock-out run inside a transaction; give them the same fakes.
+  $transaction: async (fn) => fn(fakeModels),
 };
 
 // Put the fake in Node's module cache before any service loads the real one.
@@ -44,6 +66,7 @@ const productService = require("../src/services/productService");
 const productController = require("../src/controllers/productController");
 const saleService = require("../src/services/saleService");
 const purchaseService = require("../src/services/purchaseService");
+const inventoryService = require("../src/services/inventoryService");
 
 // Minimal stand-in for Express's res object.
 const fakeRes = () => {
@@ -119,4 +142,53 @@ test("a new purchase with an inactive product is rejected", async () => {
     }),
     /inactive/
   );
+});
+
+// ---- Retired products cannot be edited ----------------------------------
+test("PUT on a retired product returns 409 and changes nothing", async () => {
+  const res = fakeRes();
+  await productController.updateProduct(
+    { params: { id: "2" }, body: { name: "New name" } },
+    res
+  );
+
+  assert.equal(res.statusCode, 409);
+  assert.equal(calls.length, 0);
+  assert.equal(products.find((p) => p.id === 2).name, "Retired soap");
+});
+
+test("PUT on an unknown product returns 404", async () => {
+  const res = fakeRes();
+  await productController.updateProduct(
+    { params: { id: "999" }, body: { name: "x" } },
+    res
+  );
+
+  assert.equal(res.statusCode, 404);
+  assert.equal(calls.length, 0);
+});
+
+test("PUT on an active product still works", async () => {
+  const res = fakeRes();
+  await productController.updateProduct(
+    { params: { id: "1" }, body: { name: "Better soap" } },
+    res
+  );
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.name, "Better soap");
+});
+
+// ---- Stock rules for retired products -----------------------------------
+test("stock-in for a retired product is rejected", async () => {
+  await assert.rejects(
+    inventoryService.stockIn({ productId: 2, quantity: 5 }),
+    /inactive/
+  );
+  assert.equal(calls.length, 0);
+});
+
+test("stock-out for a retired product is still allowed (write off leftovers)", async () => {
+  const result = await inventoryService.stockOut({ productId: 2, quantity: 1 });
+  assert.equal(result.movement.type, "OUT");
 });

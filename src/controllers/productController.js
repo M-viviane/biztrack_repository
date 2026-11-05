@@ -58,11 +58,23 @@ const updateProduct = async (req, res) => {
   try {
     const id = Number(req.params.id);
 
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({
+        message: "Invalid product id",
+      });
+    }
+
     const product = await productService.updateProduct(id, req.body);
+
+    if (!product) {
+      return res.status(404).json({
+        message: "Product not found",
+      });
+    }
 
     res.status(200).json(product);
   } catch (error) {
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       message: "Failed to update product",
       error: error.message,
     });
