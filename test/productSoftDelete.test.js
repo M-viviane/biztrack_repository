@@ -192,3 +192,58 @@ test("stock-out for a retired product is still allowed (write off leftovers)", a
   const result = await inventoryService.stockOut({ productId: 2, quantity: 1 });
   assert.equal(result.movement.type, "OUT");
 });
+
+// ---- Restoring a retired product ----------------------------------------
+test("PATCH restore brings a retired product back with update", async () => {
+  const res = fakeRes();
+  await productController.restoreProduct({ params: { id: "2" } }, res);
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.product.isActive, true);
+  assert.deepEqual(calls, [
+    { method: "update", where: { id: 2 }, data: { isActive: true } },
+  ]);
+});
+
+test("PATCH restore returns 404 for an unknown id", async () => {
+  const res = fakeRes();
+  await productController.restoreProduct({ params: { id: "999" } }, res);
+
+  assert.equal(res.statusCode, 404);
+  assert.equal(calls.length, 0);
+});
+
+test("PATCH restore returns 400 for an id that is not a number", async () => {
+  const res = fakeRes();
+  await productController.restoreProduct({ params: { id: "abc" } }, res);
+
+  assert.equal(res.statusCode, 400);
+});
+
+test("full cycle: retire -> blocked -> restore -> usable again", async () => {
+  await productController.deleteProduct({ params: { id: "1" } }, fakeRes());
+  await assert.rejects(
+    inventoryService.stockIn({ productId: 1, quantity: 5 }),
+    /inactive/
+  );
+
+  await productController.restoreProduct({ params: { id: "1" } }, fakeRes());
+
+  const res = fakeRes();
+  await productController.updateProduct(
+    { params: { id: "1" }, body: { name: "Back again" } },
+    res
+  );
+  assert.equal(res.statusCode, 200);
+  await inventoryService.stockIn({ productId: 1, quantity: 5 });
+});
+
+test("restore route is PATCH /:id/restore and is protected", () => {
+  const router = require("../src/routes/productRoutes");
+  const layer = router.stack.find((l) => l.route && l.route.path === "/:id/restore");
+
+  assert.ok(layer, "route /:id/restore exists");
+  assert.equal(layer.route.methods.patch, true);
+  // auth middleware + role middleware + controller
+  assert.equal(layer.route.stack.length, 3);
+});

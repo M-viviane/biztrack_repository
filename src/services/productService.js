@@ -125,10 +125,38 @@ const deleteProduct = async (id) => {
 };
 
 
+// RESTORE PRODUCT (UNDO SOFT DELETE)
+// Brings a retired product back so it can be sold and purchased again.
+// Returns null when no product has this id.
+const restoreProduct = async (id) => {
+  const existing = await prisma.product.findUnique({
+    where: {
+      id: Number(id)
+    }
+  });
+
+  if (!existing) {
+    return null;
+  }
+
+  const product = await prisma.product.update({
+    where: {
+      id: Number(id)
+    },
+    data: {
+      isActive: true
+    }
+  });
+
+  return product;
+};
+
+
 module.exports = {
   createProduct,
   getProducts,
   getProductById,
   updateProduct,
-  deleteProduct
+  deleteProduct,
+  restoreProduct
 };

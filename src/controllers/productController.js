@@ -114,10 +114,43 @@ const deleteProduct = async (req, res) => {
 };
 
 
+// PATCH - Restore a retired product
+const restoreProduct = async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({
+        message: "Invalid product id",
+      });
+    }
+
+    const product = await productService.restoreProduct(id);
+
+    if (!product) {
+      return res.status(404).json({
+        message: "Product not found",
+      });
+    }
+
+    res.status(200).json({
+      message: "Product restored successfully",
+      product,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to restore product",
+      error: error.message,
+    });
+  }
+};
+
+
 module.exports = {
   createProduct,
   getProducts,
   getProductById,
   updateProduct,
   deleteProduct,
+  restoreProduct,
 };

@@ -51,4 +51,13 @@ router.delete(
   productController.deleteProduct
 );
 
+// RESTORE A RETIRED PRODUCT
+// Only ADMIN can restore products (same as delete)
+router.patch(
+  "/:id/restore",
+  authMiddleware,
+  roleMiddleware("ADMIN"),
+  productController.restoreProduct
+);
+
 module.exports = router;
