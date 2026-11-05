@@ -15,9 +15,6 @@ const createSale = async (req, res) => {
   }
 };
 
-module.exports = {
-  createSale,
-};
 const getSales = async (req, res) => {
   try {
     const sales = await saleService.getSales();
