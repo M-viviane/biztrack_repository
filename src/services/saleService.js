@@ -34,6 +34,12 @@ const createSale = async ({ userId, items }) => {
         throw new Error(`Product ${productId} not found`);
       }
 
+      if (!product.isActive) {
+        throw new Error(
+          `Product ${productId} is inactive and cannot be sold`
+        );
+      }
+
       if (product.selling_price === null) {
         throw new Error(
           `Selling price is not set for product ${productId}`

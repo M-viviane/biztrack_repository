@@ -54,7 +54,25 @@ const getProductById = async (id) => {
 
 
 // UPDATE PRODUCT
+// Returns null when no product has this id.
+// Retired (inactive) products cannot be edited.
 const updateProduct = async (id, data) => {
+  const existing = await prisma.product.findUnique({
+    where: {
+      id: Number(id)
+    }
+  });
+
+  if (!existing) {
+    return null;
+  }
+
+  if (!existing.isActive) {
+    const error = new Error("Product is retired and cannot be edited");
+    error.statusCode = 409;
+    throw error;
+  }
+
   const product = await prisma.product.update({
     where: {
       id: Number(id)
@@ -81,8 +99,20 @@ const updateProduct = async (id, data) => {
 
 
 // DELETE PRODUCT (SOFT DELETE)
+// The row is kept so past sales and purchases still point to it.
+// Returns null when no product has this id.
 const deleteProduct = async (id) => {
-  const product = await prisma.product.delete({
+  const existing = await prisma.product.findUnique({
+    where: {
+      id: Number(id)
+    }
+  });
+
+  if (!existing) {
+    return null;
+  }
+
+  const product = await prisma.product.update({
     where: {
       id: Number(id)
     },
@@ -95,10 +125,38 @@ const deleteProduct = async (id) => {
 };
 
 
+// RESTORE PRODUCT (UNDO SOFT DELETE)
+// Brings a retired product back so it can be sold and purchased again.
+// Returns null when no product has this id.
+const restoreProduct = async (id) => {
+  const existing = await prisma.product.findUnique({
+    where: {
+      id: Number(id)
+    }
+  });
+
+  if (!existing) {
+    return null;
+  }
+
+  const product = await prisma.product.update({
+    where: {
+      id: Number(id)
+    },
+    data: {
+      isActive: true
+    }
+  });
+
+  return product;
+};
+
+
 module.exports = {
   createProduct,
   getProducts,
   getProductById,
   updateProduct,
-  deleteProduct
+  deleteProduct,
+  restoreProduct
 };

@@ -47,6 +47,12 @@ const createPurchase = async ({ supplierId, userId, items }) => {
         throw new Error(`Product ${productId} not found`);
       }
 
+      if (!product.isActive) {
+        throw new Error(
+          `Product ${productId} is inactive and cannot be purchased`
+        );
+      }
+
       totalAmount += quantity * unitCost;
     }
 
