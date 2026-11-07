@@ -3,7 +3,15 @@ const prisma = require("../config/prisma");
 // =========================
 // CREATE SALE
 // =========================
+// userId must be the logged-in user's id (req.user.id), never a value
+// from the request body.
 const createSale = async ({ userId, items }) => {
+  const sellerId = Number(userId);
+
+  if (!Number.isInteger(sellerId) || sellerId <= 0) {
+    throw new Error("A logged-in user is required to record a sale");
+  }
+
   if (!items || !Array.isArray(items) || items.length === 0) {
     throw new Error("Sale must contain at least one item");
   }
@@ -72,7 +80,7 @@ const createSale = async ({ userId, items }) => {
     // Create sale
     const sale = await tx.sales.create({
       data: {
-        user_id: userId ? Number(userId) : null,
+        user_id: sellerId,
         total_amount: totalAmount,
         sale_date: new Date(),
         created_at: new Date(),

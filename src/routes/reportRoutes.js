@@ -7,7 +7,10 @@ const reportController = require("../controllers/reportController");
 const authMiddleware = require("../middleware/authMiddleware");
 const roleMiddleware = require("../middleware/roleMiddleware");
 
-router.get("/sales-summary", reportController.getSalesSummary);
+router.get("/sales-summary",
+    authMiddleware,
+    roleMiddleware("ADMIN","MANAGER"),
+    reportController.getSalesSummary);
 
 router.get("/expense-summary",
     authMiddleware,

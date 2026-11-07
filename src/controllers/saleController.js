@@ -2,7 +2,12 @@ const saleService = require("../services/saleService");
 
 const createSale = async (req, res) => {
   try {
-    const sale = await saleService.createSale(req.body);
+    // The seller is always the logged-in user (set by authMiddleware).
+    // Any userId sent in the request body is ignored.
+    const sale = await saleService.createSale({
+      userId: req.user.id,
+      items: req.body.items,
+    });
 
     res.status(201).json({
       message: "Sale created successfully",
