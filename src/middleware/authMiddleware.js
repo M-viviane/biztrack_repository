@@ -26,16 +26,12 @@ const authMiddleware = (req, res, next) => {
       process.env.JWT_SECRET
     );
 
-    console.log("Decoded JWT:", decoded);
-
     // Store user information for other middleware
     req.user = decoded;
 
     next();
 
   } catch (error) {
-    console.error("JWT Error:", error.message);
-
     if (error.name === "TokenExpiredError") {
       return res.status(401).json({
         message: "Token has expired. Please login again."

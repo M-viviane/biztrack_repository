@@ -154,3 +154,24 @@ test("ADMIN and MANAGER get past the role check on every report route", async ()
     }
   }
 });
+
+// ---- BT-005: no debug routes, no token or role logging ------------------
+test("no debug *-test routes exist", () => {
+  const debugRoutes = routes.filter((r) => /-test\b/.test(r.key)).map((r) => r.key);
+  assert.deepEqual(debugRoutes, []);
+});
+
+test("login and role checks print nothing to the console", async () => {
+  const printed = [];
+  console.log = (...args) => printed.push(args.join(" "));
+  console.error = (...args) => printed.push(args.join(" "));
+  try {
+    await call("GET /api/auth/profile", tokenFor("STAFF")); // valid token -> 200
+    await call("GET /api/reports/profit", tokenFor("STAFF")); // wrong role -> 403
+    await call("GET /api/auth/profile", "not-a-real-token"); // bad token -> 401
+  } finally {
+    console.log = () => {};
+    console.error = () => {};
+  }
+  assert.deepEqual(printed, []);
+});

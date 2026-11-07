@@ -11,20 +11,12 @@ const roleMiddleware = (...allowedRoles) => {
     // Get user's role
     const userRole = req.user.role;
 
-    console.log("========== ROLE CHECK ==========");
-    console.log("User role:", userRole);
-    console.log("Allowed roles:", allowedRoles);
-
     // Check if user's role is allowed
     if (!allowedRoles.includes(userRole)) {
-      console.log("ACCESS DENIED");
-
       return res.status(403).json({
         message: "Access denied. You do not have permission."
       });
     }
-
-    console.log("ACCESS GRANTED");
 
     next();
   };
