@@ -17,7 +17,7 @@ router.get(
   "/users",
   authMiddleware,
   roleMiddleware("ADMIN"),
-  adminController.getAllUsers
+  adminController.getAllUsers,
 );
 
 module.exports = router;

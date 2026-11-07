@@ -26,57 +26,6 @@ const adminRoutes = require("./routes/adminRoutes");
 const supplierRoutes = require("./routes/supplierRoutes");
 const userRoutes = require("./routes/userRoutes");
 
-// ========================================
-// AUTHENTICATION & AUTHORIZATION
-// ========================================
-
-const authMiddleware = require("./middleware/authMiddleware");
-const roleMiddleware = require("./middleware/roleMiddleware");
-
-// ========================================
-// TASK 40 — ADMIN TEST ROUTE
-// ========================================
-
-app.get(
-  "/api/admin-test",
-  authMiddleware,
-  roleMiddleware("ADMIN"),
-  (req, res) => {
-    res.json({
-      message: "Welcome Admin! You have access."
-    });
-  }
-);
-
-// ========================================
-// TASK 41 — MANAGER TEST ROUTE
-// ========================================
-
-app.get(
-  "/api/manager-test",
-  authMiddleware,
-  roleMiddleware("MANAGER"),
-  (req, res) => {
-    res.json({
-      message: "Welcome Manager! You have access."
-    });
-  }
-);
-// ========================================
-// TASK 42 — STAFF TEST ROUTE
-// ========================================
-
-app.get(
-  "/api/staff-test",
-  authMiddleware,
-  roleMiddleware("STAFF"),
-  (req, res) => {
-    res.json({
-      message: "Welcome Staff! You have access."
-    });
-  }
-);
-
 // =============================================
 // PRODUCT ROUTES
 // =============================================

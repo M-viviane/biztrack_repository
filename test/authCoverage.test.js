@@ -17,16 +17,21 @@ const PUBLIC_ROUTES = new Set([
   "POST /api/auth/login",
 ]);
 
-const TEST_SECRET = "test-only-secret";
+// Must pass the config check in src/config/env.js (at least 32 characters).
+const TEST_SECRET = "test-only-secret-that-is-at-least-32-chars";
 process.env.JWT_SECRET = TEST_SECRET;
+process.env.DATABASE_URL ??= "postgresql://test:test@localhost:5432/test";
 
 // ---- Fake Prisma: any database call fails, so nothing real is touched ----
 const prismaPath = path.join(__dirname, "..", "src", "config", "prisma.js");
-const failingModel = new Proxy({}, {
-  get: () => async () => {
-    throw new Error("fake database");
+const failingModel = new Proxy(
+  {},
+  {
+    get: () => async () => {
+      throw new Error("fake database");
+    },
   },
-});
+);
 require.cache[prismaPath] = {
   id: prismaPath,
   filename: prismaPath,
@@ -104,7 +109,7 @@ const tokenFor = (role) => jwt.sign({ id: 1, role }, TEST_SECRET);
 // ---- Sanity: the route list is complete --------------------------------
 test("every router mounted in app.js was found", () => {
   const mountedRouters = app.router.stack.filter(
-    (layer) => layer.handle && Array.isArray(layer.handle.stack)
+    (layer) => layer.handle && Array.isArray(layer.handle.stack),
   );
   assert.equal(mounts.length, mountedRouters.length);
   assert.ok(routes.length > 30, `found only ${routes.length} routes`);
@@ -117,7 +122,11 @@ test("every route except health/auth login+register uses authMiddleware", () => 
     .filter((r) => !r.handlers.includes(authMiddleware))
     .map((r) => r.key);
 
-  assert.deepEqual(missing, [], `routes without authMiddleware:\n${missing.join("\n")}`);
+  assert.deepEqual(
+    missing,
+    [],
+    `routes without authMiddleware:\n${missing.join("\n")}`,
+  );
 });
 
 test("every protected route really answers 401 without a token", async () => {
@@ -131,7 +140,8 @@ test("every protected route really answers 401 without a token", async () => {
 });
 
 // ---- Criterion 1: all report routes require ADMIN or MANAGER -----------
-const reportRoutes = () => routes.filter((r) => r.key.includes(" /api/reports/"));
+const reportRoutes = () =>
+  routes.filter((r) => r.key.includes(" /api/reports/"));
 
 test("there are report routes to check", () => {
   assert.ok(reportRoutes().length >= 4);
@@ -150,7 +160,33 @@ test("ADMIN and MANAGER get past the role check on every report route", async ()
       const res = await call(r.key, tokenFor(role));
       // The fake database makes the controller fail with 500, which proves
       // the request got through authMiddleware and roleMiddleware.
-      assert.ok(![401, 403].includes(res.status), `${role} ${r.key} -> ${res.status}`);
+      assert.ok(
+        ![401, 403].includes(res.status),
+        `${role} ${r.key} -> ${res.status}`,
+      );
     }
   }
+});
+
+// ---- BT-005: no debug routes, no token or role logging ------------------
+test("no debug *-test routes exist", () => {
+  const debugRoutes = routes
+    .filter((r) => /-test\b/.test(r.key))
+    .map((r) => r.key);
+  assert.deepEqual(debugRoutes, []);
+});
+
+test("login and role checks print nothing to the console", async () => {
+  const printed = [];
+  console.log = (...args) => printed.push(args.join(" "));
+  console.error = (...args) => printed.push(args.join(" "));
+  try {
+    await call("GET /api/auth/profile", tokenFor("STAFF")); // valid token -> 200
+    await call("GET /api/reports/profit", tokenFor("STAFF")); // wrong role -> 403
+    await call("GET /api/auth/profile", "not-a-real-token"); // bad token -> 401
+  } finally {
+    console.log = () => {};
+    console.error = () => {};
+  }
+  assert.deepEqual(printed, []);
 });

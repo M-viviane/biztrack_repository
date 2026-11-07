@@ -108,7 +108,7 @@ const stockOut = async ({ productId, quantity, reference }) => {
     // Prevent negative stock
     if (inventory.quantity < quantityNumber) {
       throw new Error(
-        `Insufficient stock. Available quantity: ${inventory.quantity}`
+        `Insufficient stock. Available quantity: ${inventory.quantity}`,
       );
     }
 

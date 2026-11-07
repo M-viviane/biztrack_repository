@@ -1,4 +1,3 @@
-
 const prisma = require("../config/prisma");
 
 // ======================================
@@ -49,7 +48,7 @@ const createPurchase = async ({ supplierId, userId, items }) => {
 
       if (!product.isActive) {
         throw new Error(
-          `Product ${productId} is inactive and cannot be purchased`
+          `Product ${productId} is inactive and cannot be purchased`,
         );
       }
 
@@ -336,4 +335,3 @@ module.exports = {
   updatePurchase,
   deletePurchase,
 };
-

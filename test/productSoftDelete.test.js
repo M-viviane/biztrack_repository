@@ -7,6 +7,12 @@ const { test, beforeEach } = require("node:test");
 const assert = require("node:assert/strict");
 const path = require("node:path");
 
+// The routes load authMiddleware, which loads src/config/env.js. That
+// checks the config straight away, so give it safe test values. This
+// way the tests also pass on a fresh clone or in CI, with no .env file.
+process.env.DATABASE_URL ??= "postgresql://test:test@localhost:5432/test";
+process.env.JWT_SECRET ??= "x".repeat(32);
+
 // ---- Fake Prisma client -------------------------------------------------
 let products;
 let calls;
@@ -16,13 +22,13 @@ const fakeProductModel = {
   // (e.g. id AND isActive).
   findUnique: async ({ where }) =>
     products.find((p) =>
-      Object.entries(where).every(([key, value]) => p[key] === value)
+      Object.entries(where).every(([key, value]) => p[key] === value),
     ) || null,
   // Like real Prisma: every condition in `where` must match, otherwise
   // it throws error P2025. Records a call only if a row changed.
   update: async ({ where, data }) => {
     const product = products.find((p) =>
-      Object.entries(where).every(([key, value]) => p[key] === value)
+      Object.entries(where).every(([key, value]) => p[key] === value),
     );
     if (!product) {
       const error = new Error("No record was found for an update.");
@@ -37,7 +43,7 @@ const fakeProductModel = {
   // (e.g. id AND isActive) are changed. Records a call only if a row changed.
   updateMany: async ({ where, data }) => {
     const matches = products.filter((p) =>
-      Object.entries(where).every(([key, value]) => p[key] === value)
+      Object.entries(where).every(([key, value]) => p[key] === value),
     );
     if (matches.length > 0) calls.push({ method: "updateMany", where, data });
     matches.forEach((p) => Object.assign(p, data));
@@ -63,7 +69,10 @@ const fakeSaleItemsModel = {
 };
 
 const fakeInventoryModel = {
-  findUnique: async ({ where }) => ({ productId: where.productId, quantity: 10 }),
+  findUnique: async ({ where }) => ({
+    productId: where.productId,
+    quantity: 10,
+  }),
   update: async ({ where }) => {
     calls.push({ method: "inventory.update", where });
     return { productId: where.productId, quantity: 9 };
@@ -183,8 +192,11 @@ test("service returns null for an unknown id", async () => {
 // ---- Criterion 3: inactive products are blocked -------------------------
 test("a new sale with an inactive product is rejected", async () => {
   await assert.rejects(
-    saleService.createSale({ userId: 1, items: [{ productId: 2, quantity: 1 }] }),
-    /inactive/
+    saleService.createSale({
+      userId: 1,
+      items: [{ productId: 2, quantity: 1 }],
+    }),
+    /inactive/,
   );
 });
 
@@ -195,7 +207,7 @@ test("a new purchase with an inactive product is rejected", async () => {
       userId: 1,
       items: [{ productId: 2, quantity: 1, unitCost: 100 }],
     }),
-    /inactive/
+    /inactive/,
   );
 });
 
@@ -204,7 +216,7 @@ test("PUT on a retired product returns 409 and changes nothing", async () => {
   const res = fakeRes();
   await productController.updateProduct(
     { params: { id: "2" }, body: { name: "New name" } },
-    res
+    res,
   );
 
   assert.equal(res.statusCode, 409);
@@ -216,7 +228,7 @@ test("PUT on an unknown product returns 404", async () => {
   const res = fakeRes();
   await productController.updateProduct(
     { params: { id: "999" }, body: { name: "x" } },
-    res
+    res,
   );
 
   assert.equal(res.statusCode, 404);
@@ -227,7 +239,7 @@ test("PUT on an active product still works", async () => {
   const res = fakeRes();
   await productController.updateProduct(
     { params: { id: "1" }, body: { name: "Better soap" } },
-    res
+    res,
   );
 
   assert.equal(res.statusCode, 200);
@@ -238,7 +250,7 @@ test("PUT on an active product still works", async () => {
 test("stock-in for a retired product is rejected", async () => {
   await assert.rejects(
     inventoryService.stockIn({ productId: 2, quantity: 5 }),
-    /inactive/
+    /inactive/,
   );
   assert.equal(calls.length, 0);
 });
@@ -283,7 +295,7 @@ test("full cycle: retire -> blocked -> restore -> usable again", async () => {
   await productController.deleteProduct({ params: { id: "1" } }, fakeRes());
   await assert.rejects(
     inventoryService.stockIn({ productId: 1, quantity: 5 }),
-    /inactive/
+    /inactive/,
   );
 
   await productController.restoreProduct({ params: { id: "1" } }, fakeRes());
@@ -291,7 +303,7 @@ test("full cycle: retire -> blocked -> restore -> usable again", async () => {
   const res = fakeRes();
   await productController.updateProduct(
     { params: { id: "1" }, body: { name: "Back again" } },
-    res
+    res,
   );
   assert.equal(res.statusCode, 200);
   await inventoryService.stockIn({ productId: 1, quantity: 5 });
@@ -299,7 +311,9 @@ test("full cycle: retire -> blocked -> restore -> usable again", async () => {
 
 test("restore route is PATCH /:id/restore and is protected", () => {
   const router = require("../src/routes/productRoutes");
-  const layer = router.stack.find((l) => l.route && l.route.path === "/:id/restore");
+  const layer = router.stack.find(
+    (l) => l.route && l.route.path === "/:id/restore",
+  );
 
   assert.ok(layer, "route /:id/restore exists");
   assert.equal(layer.route.methods.patch, true);
@@ -331,7 +345,7 @@ test("PUT is refused (409) even if a DELETE lands after an earlier read", async 
   try {
     await assert.rejects(
       productService.updateProduct(1, { name: "Too late" }),
-      (error) => error.statusCode === 409
+      (error) => error.statusCode === 409,
     );
   } finally {
     fakeProductModel.findUnique = realFindUnique;
@@ -347,7 +361,7 @@ test("PUT with only a name keeps price, cost, SKU, category, unit, description",
   const res = fakeRes();
   await productController.updateProduct(
     { params: { id: "1" }, body: { name: "Renamed soap" } },
-    res
+    res,
   );
 
   assert.equal(res.statusCode, 200);
@@ -402,7 +416,7 @@ test("PUT with an empty body changes nothing and returns the product", async () 
 test("PUT with an empty body on a retired product still returns 409", async () => {
   await assert.rejects(
     productService.updateProduct(2, {}),
-    (error) => error.statusCode === 409
+    (error) => error.statusCode === 409,
   );
 });
 
@@ -424,7 +438,7 @@ test("createSale saves the logged-in user, ignoring userId in the body", async (
       user: { id: 7, role: "STAFF" },
       body: { userId: 1, items: [{ productId: 1, quantity: 1 }] },
     },
-    res
+    res,
   );
 
   assert.equal(res.statusCode, 201);
@@ -435,7 +449,7 @@ test("createSale saves the logged-in user, ignoring userId in the body", async (
 test("createSale without a user id is rejected and saves nothing", async () => {
   await assert.rejects(
     saleService.createSale({ items: [{ productId: 1, quantity: 1 }] }),
-    /logged-in user is required/
+    /logged-in user is required/,
   );
   assert.equal(savedSales.length, 0);
 });
@@ -445,7 +459,7 @@ test("GET returns 400 for an id that is not a number", async () => {
   const res = fakeRes();
   await productController.getProductById(
     { params: { id: "abc" }, user: { role: "ADMIN" } },
-    res
+    res,
   );
 
   assert.equal(res.statusCode, 400);
@@ -455,7 +469,7 @@ test("GET lets an ADMIN look up a retired product", async () => {
   const res = fakeRes();
   await productController.getProductById(
     { params: { id: "2" }, user: { role: "ADMIN" } },
-    res
+    res,
   );
 
   assert.equal(res.statusCode, 200);
@@ -467,7 +481,7 @@ test("GET hides a retired product from MANAGER and STAFF (404)", async () => {
     const res = fakeRes();
     await productController.getProductById(
       { params: { id: "2" }, user: { role } },
-      res
+      res,
     );
     assert.equal(res.statusCode, 404, role);
   }
@@ -477,7 +491,7 @@ test("GET still returns an active product to everyone", async () => {
   const res = fakeRes();
   await productController.getProductById(
     { params: { id: "1" }, user: { role: "STAFF" } },
-    res
+    res,
   );
 
   assert.equal(res.statusCode, 200);
@@ -551,7 +565,7 @@ test("server.js reads PORT from the environment", () => {
   const fs = require("node:fs");
   const server = fs.readFileSync(
     path.join(__dirname, "..", "src", "server.js"),
-    "utf8"
+    "utf8",
   );
 
   // Either process.env.PORT or the validated env.PORT (src/config/env.js).

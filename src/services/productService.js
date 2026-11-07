@@ -6,39 +6,31 @@ const createProduct = async (data) => {
     data: {
       name: data.name,
       sku: data.sku,
-      category_id: data.category_id
-        ? Number(data.category_id)
-        : null,
-      cost_price: data.cost_price
-        ? Number(data.cost_price)
-        : null,
-      selling_price: data.selling_price
-        ? Number(data.selling_price)
-        : null,
+      category_id: data.category_id ? Number(data.category_id) : null,
+      cost_price: data.cost_price ? Number(data.cost_price) : null,
+      selling_price: data.selling_price ? Number(data.selling_price) : null,
       unit: data.unit,
       description: data.description,
-      isActive: true
-    }
+      isActive: true,
+    },
   });
 
   return product;
 };
 
-
 // GET ALL ACTIVE PRODUCTS
 const getProducts = async () => {
   const products = await prisma.product.findMany({
     where: {
-      isActive: true
+      isActive: true,
     },
     orderBy: {
-      id: "asc"
-    }
+      id: "asc",
+    },
   });
 
   return products;
 };
-
 
 // GET PRODUCT BY ID
 // Retired products are hidden unless includeRetired is true
@@ -51,12 +43,11 @@ const getProductById = async (id, { includeRetired = false } = {}) => {
   }
 
   const product = await prisma.product.findUnique({
-    where
+    where,
   });
 
   return product;
 };
-
 
 // Builds the update data from ONLY the fields that were sent.
 // A field that is missing from the request (undefined) is left unchanged,
@@ -99,7 +90,7 @@ const updateProduct = async (id, data) => {
   // Nothing to change: just report the product's current state.
   if (Object.keys(update).length === 0) {
     const existing = await prisma.product.findUnique({
-      where: { id: productId }
+      where: { id: productId },
     });
 
     if (!existing) {
@@ -119,15 +110,15 @@ const updateProduct = async (id, data) => {
   const result = await prisma.product.updateMany({
     where: {
       id: productId,
-      isActive: true
+      isActive: true,
     },
-    data: update
+    data: update,
   });
 
   if (result.count === 0) {
     // Nothing was updated: find out why, to answer 404 or 409.
     const existing = await prisma.product.findUnique({
-      where: { id: productId }
+      where: { id: productId },
     });
 
     if (!existing) {
@@ -139,10 +130,9 @@ const updateProduct = async (id, data) => {
 
   // Return the product as it is now saved.
   return prisma.product.findUnique({
-    where: { id: productId }
+    where: { id: productId },
   });
 };
-
 
 // Switches a product between active and retired with ONE conditional
 // write: the row only changes if it is still in the starting state.
@@ -158,11 +148,11 @@ const setProductActive = async (id, isActive, alreadyMessage) => {
     return await prisma.product.update({
       where: {
         id: productId,
-        isActive: !isActive
+        isActive: !isActive,
       },
       data: {
-        isActive
-      }
+        isActive,
+      },
     });
   } catch (error) {
     // P2025 means Prisma did not find a matching product.
@@ -173,8 +163,8 @@ const setProductActive = async (id, isActive, alreadyMessage) => {
     // Check whether the product exists.
     const product = await prisma.product.findUnique({
       where: {
-        id: productId
-      }
+        id: productId,
+      },
     });
 
     if (!product) {
@@ -188,13 +178,11 @@ const setProductActive = async (id, isActive, alreadyMessage) => {
   }
 };
 
-
 // DELETE PRODUCT (SOFT DELETE)
 // The row is kept so past sales and purchases still point to it.
 // Returns null when no product has this id; 409 if already retired.
 const deleteProduct = async (id) =>
   setProductActive(id, false, "Product is already retired");
-
 
 // RESTORE PRODUCT (UNDO SOFT DELETE)
 // Brings a retired product back so it can be sold and purchased again.
@@ -202,12 +190,11 @@ const deleteProduct = async (id) =>
 const restoreProduct = async (id) =>
   setProductActive(id, true, "Product is already active");
 
-
 module.exports = {
   createProduct,
   getProducts,
   getProductById,
   updateProduct,
   deleteProduct,
-  restoreProduct
+  restoreProduct,
 };

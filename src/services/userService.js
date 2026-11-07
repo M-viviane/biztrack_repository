@@ -1,4 +1,3 @@
-
 const prisma = require("../config/prisma");
 
 // ======================================
@@ -60,7 +59,6 @@ const getUserById = async (id) => {
   return user;
 };
 
-
 // ======================================
 // EXPORT FUNCTIONS
 // ======================================
@@ -68,4 +66,3 @@ module.exports = {
   getAllUsers,
   getUserById,
 };
-

@@ -41,9 +41,7 @@ const getCategories = async (req, res) => {
 // =========================
 const getCategoryById = async (req, res) => {
   try {
-    const category = await categoryService.getCategoryById(
-      req.params.id
-    );
+    const category = await categoryService.getCategoryById(req.params.id);
 
     res.status(200).json({
       category,
@@ -62,7 +60,7 @@ const updateCategory = async (req, res) => {
   try {
     const category = await categoryService.updateCategory(
       req.params.id,
-      req.body
+      req.body,
     );
 
     res.status(200).json({
@@ -81,9 +79,7 @@ const updateCategory = async (req, res) => {
 // =========================
 const deleteCategory = async (req, res) => {
   try {
-    const category = await categoryService.deleteCategory(
-      req.params.id
-    );
+    const category = await categoryService.deleteCategory(req.params.id);
 
     res.status(200).json({
       message: "Category deleted successfully",

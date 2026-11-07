@@ -9,17 +9,23 @@ const {
 const authMiddleware = require("../middleware/authMiddleware");
 const roleMiddleware = require("../middleware/roleMiddleware");
 
-router.post("/",
+router.post(
+  "/",
   authMiddleware,
-  roleMiddleware("ADMIN","MANAGER"),
-  createSupplier);
-router.get("/", 
+  roleMiddleware("ADMIN", "MANAGER"),
+  createSupplier,
+);
+router.get(
+  "/",
   authMiddleware,
-  roleMiddleware("ADMIN","MANAGER","STAFF"),
-  getSuppliers);
-router.get("/:id",
+  roleMiddleware("ADMIN", "MANAGER", "STAFF"),
+  getSuppliers,
+);
+router.get(
+  "/:id",
   authMiddleware,
-  roleMiddleware("ADMIN","MANAGER","STAFF"),
-  getSupplierById);
+  roleMiddleware("ADMIN", "MANAGER", "STAFF"),
+  getSupplierById,
+);
 
 module.exports = router;

@@ -10,7 +10,7 @@ const register = async (req, res) => {
     // Validate required fields
     if (!name || !email || !password) {
       return res.status(400).json({
-        message: "Name, email and password are required"
+        message: "Name, email and password are required",
       });
     }
 
@@ -18,16 +18,16 @@ const register = async (req, res) => {
     const user = await authService.registerUser({
       name,
       email,
-      password
+      password,
     });
 
     res.status(201).json({
       message: "User registered successfully",
-      data: user
+      data: user,
     });
   } catch (error) {
     res.status(400).json({
-      message: error.message
+      message: error.message,
     });
   }
 };
@@ -42,28 +42,28 @@ const login = async (req, res) => {
     // Validate required fields
     if (!email || !password) {
       return res.status(400).json({
-        message: "Email and password are required"
+        message: "Email and password are required",
       });
     }
 
     // Login user
     const result = await authService.loginUser({
       email,
-      password
+      password,
     });
 
     res.status(200).json({
       message: "Login successful",
-      data: result
+      data: result,
     });
   } catch (error) {
     res.status(401).json({
-      message: error.message
+      message: error.message,
     });
   }
 };
 
 module.exports = {
   register,
-  login
+  login,
 };

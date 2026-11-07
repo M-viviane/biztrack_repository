@@ -1,0 +1,13 @@
+# Generated or installed files
+node_modules/
+coverage/
+package-lock.json
+
+# Prisma migrations are generated SQL: never reformat them
+prisma/migrations/
+
+# Editor/agent tool folders (not part of the app)
+.agents/
+.claude/
+.cursor/
+.devin/

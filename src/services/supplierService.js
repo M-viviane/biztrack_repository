@@ -20,8 +20,8 @@ const createSupplier = async ({ name, phone, email, address }) => {
 const getSuppliers = async () => {
   return await prisma.suppliers.findMany({
     orderBy: {
-       id: "asc" 
-      },
+      id: "asc",
+    },
   });
 };
 

@@ -1,4 +1,3 @@
-
 const userService = require("../services/userService");
 
 // GET ALL USERS
