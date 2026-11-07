@@ -152,31 +152,40 @@ const updateProduct = async (id, data) => {
 const setProductActive = async (id, isActive, alreadyMessage) => {
   const productId = Number(id);
 
-  const result = await prisma.product.updateMany({
-    where: {
-      id: productId,
-      isActive: !isActive
-    },
-    data: {
-      isActive
+  try {
+    // ONE database call on success: change the row only if it is still
+    // in the starting state, and get the updated product back.
+    return await prisma.product.update({
+      where: {
+        id: productId,
+        isActive: !isActive
+      },
+      data: {
+        isActive
+      }
+    });
+  } catch (error) {
+    // P2025 means Prisma did not find a matching product.
+    if (error.code !== "P2025") {
+      throw error;
     }
-  });
 
-  const product = await prisma.product.findUnique({
-    where: { id: productId }
-  });
+    // Check whether the product exists.
+    const product = await prisma.product.findUnique({
+      where: {
+        id: productId
+      }
+    });
 
-  if (!product) {
-    return null;
+    if (!product) {
+      return null;
+    }
+
+    // The product exists, but its status is already what was requested.
+    const conflictError = new Error(alreadyMessage);
+    conflictError.statusCode = 409;
+    throw conflictError;
   }
-
-  if (result.count === 0) {
-    const error = new Error(alreadyMessage);
-    error.statusCode = 409;
-    throw error;
-  }
-
-  return product;
 };
 
 

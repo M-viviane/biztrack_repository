@@ -18,9 +18,18 @@ const fakeProductModel = {
     products.find((p) =>
       Object.entries(where).every(([key, value]) => p[key] === value)
     ) || null,
+  // Like real Prisma: every condition in `where` must match, otherwise
+  // it throws error P2025. Records a call only if a row changed.
   update: async ({ where, data }) => {
+    const product = products.find((p) =>
+      Object.entries(where).every(([key, value]) => p[key] === value)
+    );
+    if (!product) {
+      const error = new Error("No record was found for an update.");
+      error.code = "P2025";
+      throw error;
+    }
     calls.push({ method: "update", where, data });
-    const product = products.find((p) => p.id === where.id);
     Object.assign(product, data);
     return product;
   },
@@ -141,7 +150,7 @@ test("DELETE retires the product with update, not delete", async () => {
   assert.equal(res.body.product.isActive, false);
   assert.deepEqual(calls, [
     {
-      method: "updateMany",
+      method: "update",
       where: { id: 1, isActive: true },
       data: { isActive: false },
     },
@@ -248,7 +257,7 @@ test("PATCH restore brings a retired product back with update", async () => {
   assert.equal(res.body.product.isActive, true);
   assert.deepEqual(calls, [
     {
-      method: "updateMany",
+      method: "update",
       where: { id: 2, isActive: false },
       data: { isActive: true },
     },
@@ -495,12 +504,46 @@ test("PATCH restore on an active product returns 409 and writes nothing", async 
 });
 
 test("DELETE never throws a 500 if the product vanishes mid-request", async () => {
-  // A plain update on a missing row would throw Prisma error P2025.
-  // updateMany just reports count 0, which becomes a clean 404.
+  // update on a missing row throws Prisma error P2025. The service
+  // catches it and returns null, which becomes a clean 404 (not a 500).
   const res = fakeRes();
   await productController.deleteProduct({ params: { id: "999" } }, res);
 
   assert.equal(res.statusCode, 404);
+});
+
+test("DELETE success uses only ONE database call", async () => {
+  let findUniqueCalls = 0;
+  const originalFind = fakeProductModel.findUnique;
+  fakeProductModel.findUnique = async (args) => {
+    findUniqueCalls += 1;
+    return originalFind(args);
+  };
+  try {
+    const res = fakeRes();
+    await productController.deleteProduct({ params: { id: "1" } }, res);
+
+    assert.equal(res.statusCode, 200);
+    assert.equal(calls.length, 1); // the single update
+    assert.equal(findUniqueCalls, 0); // no extra read-back
+  } finally {
+    fakeProductModel.findUnique = originalFind;
+  }
+});
+
+test("a database error other than P2025 is not hidden", async () => {
+  const originalUpdate = fakeProductModel.update;
+  fakeProductModel.update = async () => {
+    throw new Error("connection lost");
+  };
+  try {
+    const res = fakeRes();
+    await productController.deleteProduct({ params: { id: "1" } }, res);
+
+    assert.equal(res.statusCode, 500);
+  } finally {
+    fakeProductModel.update = originalUpdate;
+  }
 });
 
 // ---- Review: PORT comes from the environment ----------------------------
