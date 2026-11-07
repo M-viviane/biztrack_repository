@@ -7,6 +7,12 @@ const { test, beforeEach } = require("node:test");
 const assert = require("node:assert/strict");
 const path = require("node:path");
 
+// The routes load authMiddleware, which loads src/config/env.js. That
+// checks the config straight away, so give it safe test values. This
+// way the tests also pass on a fresh clone or in CI, with no .env file.
+process.env.DATABASE_URL ??= "postgresql://test:test@localhost:5432/test";
+process.env.JWT_SECRET ??= "x".repeat(32);
+
 // ---- Fake Prisma client -------------------------------------------------
 let products;
 let calls;
