@@ -511,6 +511,7 @@ test("server.js reads PORT from the environment", () => {
     "utf8"
   );
 
-  assert.match(server, /process\.env\.PORT/);
+  // Either process.env.PORT or the validated env.PORT (src/config/env.js).
+  assert.match(server, /env\.PORT/);
   assert.doesNotMatch(server, /listen\(5000/);
 });
