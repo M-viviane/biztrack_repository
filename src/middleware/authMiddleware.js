@@ -1,4 +1,5 @@
 const jwt = require("jsonwebtoken");
+const env = require("../config/env");
 
 const authMiddleware = (req, res, next) => {
   try {
@@ -23,7 +24,7 @@ const authMiddleware = (req, res, next) => {
     // Verify token
     const decoded = jwt.verify(
       token,
-      process.env.JWT_SECRET
+      env.JWT_SECRET
     );
 
     // Store user information for other middleware

@@ -17,8 +17,10 @@ const PUBLIC_ROUTES = new Set([
   "POST /api/auth/login",
 ]);
 
-const TEST_SECRET = "test-only-secret";
+// Must pass the config check in src/config/env.js (at least 32 characters).
+const TEST_SECRET = "test-only-secret-that-is-at-least-32-chars";
 process.env.JWT_SECRET = TEST_SECRET;
+process.env.DATABASE_URL ??= "postgresql://test:test@localhost:5432/test";
 
 // ---- Fake Prisma: any database call fails, so nothing real is touched ----
 const prismaPath = path.join(__dirname, "..", "src", "config", "prisma.js");
