@@ -53,48 +53,89 @@ const getProductById = async (id) => {
 };
 
 
+// Builds the update data from ONLY the fields that were sent.
+// A field that is missing from the request (undefined) is left unchanged,
+// so updating just the name keeps the prices, SKU and category.
+// `!== undefined` (not a truthiness check) means a price of 0 is kept as 0.
+const buildProductUpdate = (data) => {
+  const update = {};
+
+  const textFields = ["name", "sku", "unit", "description"];
+  const numberFields = ["category_id", "cost_price", "selling_price"];
+
+  for (const field of textFields) {
+    if (data[field] !== undefined) {
+      update[field] = data[field];
+    }
+  }
+
+  for (const field of numberFields) {
+    if (data[field] !== undefined) {
+      update[field] = data[field] === null ? null : Number(data[field]);
+    }
+  }
+
+  return update;
+};
+
+const retiredProductError = () => {
+  const error = new Error("Product is retired and cannot be edited");
+  error.statusCode = 409;
+  return error;
+};
+
 // UPDATE PRODUCT
 // Returns null when no product has this id.
-// Retired (inactive) products cannot be edited.
+// Retired (inactive) products cannot be edited (409).
 const updateProduct = async (id, data) => {
-  const existing = await prisma.product.findUnique({
-    where: {
-      id: Number(id)
+  const productId = Number(id);
+  const update = buildProductUpdate(data);
+
+  // Nothing to change: just report the product's current state.
+  if (Object.keys(update).length === 0) {
+    const existing = await prisma.product.findUnique({
+      where: { id: productId }
+    });
+
+    if (!existing) {
+      return null;
     }
-  });
 
-  if (!existing) {
-    return null;
+    if (!existing.isActive) {
+      throw retiredProductError();
+    }
+
+    return existing;
   }
 
-  if (!existing.isActive) {
-    const error = new Error("Product is retired and cannot be edited");
-    error.statusCode = 409;
-    throw error;
-  }
-
-  const product = await prisma.product.update({
+  // One conditional write: the database only updates the row if it is
+  // still active at that moment. There is no gap between "check" and
+  // "update" for a DELETE to slip into.
+  const result = await prisma.product.updateMany({
     where: {
-      id: Number(id)
+      id: productId,
+      isActive: true
     },
-    data: {
-      name: data.name,
-      sku: data.sku,
-      category_id: data.category_id
-        ? Number(data.category_id)
-        : null,
-      cost_price: data.cost_price
-        ? Number(data.cost_price)
-        : null,
-      selling_price: data.selling_price
-        ? Number(data.selling_price)
-        : null,
-      unit: data.unit,
-      description: data.description
-    }
+    data: update
   });
 
-  return product;
+  if (result.count === 0) {
+    // Nothing was updated: find out why, to answer 404 or 409.
+    const existing = await prisma.product.findUnique({
+      where: { id: productId }
+    });
+
+    if (!existing) {
+      return null;
+    }
+
+    throw retiredProductError();
+  }
+
+  // Return the product as it is now saved.
+  return prisma.product.findUnique({
+    where: { id: productId }
+  });
 };
 
 

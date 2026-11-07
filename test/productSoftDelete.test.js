@@ -19,10 +19,33 @@ const fakeProductModel = {
     Object.assign(product, data);
     return product;
   },
+  // Like the real database: only rows matching EVERY condition in `where`
+  // (e.g. id AND isActive) are changed. Records a call only if a row changed.
+  updateMany: async ({ where, data }) => {
+    const matches = products.filter((p) =>
+      Object.entries(where).every(([key, value]) => p[key] === value)
+    );
+    if (matches.length > 0) calls.push({ method: "updateMany", where, data });
+    matches.forEach((p) => Object.assign(p, data));
+    return { count: matches.length };
+  },
   delete: async (args) => {
     calls.push({ method: "delete", args });
     throw new Error("delete must not be used for products");
   },
+};
+
+// Sales tables: remember what was saved so tests can check it.
+let savedSales;
+const fakeSalesModel = {
+  create: async ({ data }) => {
+    const sale = { id: savedSales.length + 1, ...data };
+    savedSales.push(sale);
+    return sale;
+  },
+};
+const fakeSaleItemsModel = {
+  create: async ({ data }) => data,
 };
 
 const fakeInventoryModel = {
@@ -45,6 +68,8 @@ const fakeModels = {
   product: fakeProductModel,
   inventory: fakeInventoryModel,
   inventoryMovement: fakeMovementModel,
+  sales: fakeSalesModel,
+  sale_items: fakeSaleItemsModel,
 };
 
 const fakePrisma = {
@@ -67,6 +92,7 @@ const productController = require("../src/controllers/productController");
 const saleService = require("../src/services/saleService");
 const purchaseService = require("../src/services/purchaseService");
 const inventoryService = require("../src/services/inventoryService");
+const saleController = require("../src/controllers/saleController");
 
 // Minimal stand-in for Express's res object.
 const fakeRes = () => {
@@ -84,10 +110,21 @@ const fakeRes = () => {
 
 beforeEach(() => {
   products = [
-    { id: 1, name: "Active soap", isActive: true, selling_price: 500 },
+    {
+      id: 1,
+      name: "Active soap",
+      sku: "SOAP-1",
+      category_id: 3,
+      cost_price: 300,
+      selling_price: 500,
+      unit: "bar",
+      description: "Lavender",
+      isActive: true,
+    },
     { id: 2, name: "Retired soap", isActive: false, selling_price: 500 },
   ];
   calls = [];
+  savedSales = [];
 });
 
 // ---- Criterion 1: DELETE sets isActive=false via update -----------------
@@ -246,4 +283,137 @@ test("restore route is PATCH /:id/restore and is protected", () => {
   assert.equal(layer.route.methods.patch, true);
   // auth middleware + role middleware + controller
   assert.equal(layer.route.stack.length, 3);
+});
+
+// ---- Review fix 1: no race between "check retired" and "update" ---------
+test("PUT updates with ONE conditional write (id AND isActive: true)", async () => {
+  await productService.updateProduct(1, { name: "Safer soap" });
+
+  assert.deepEqual(calls, [
+    {
+      method: "updateMany",
+      where: { id: 1, isActive: true },
+      data: { name: "Safer soap" },
+    },
+  ]);
+});
+
+test("PUT is refused (409) even if a DELETE lands after an earlier read", async () => {
+  // Simulate the race: an earlier read saw the product as active...
+  const staleRead = { ...products[0] };
+  // ...then a DELETE retired it before the update ran.
+  products[0].isActive = false;
+  const realFindUnique = fakeProductModel.findUnique;
+  fakeProductModel.findUnique = async () => staleRead;
+
+  try {
+    await assert.rejects(
+      productService.updateProduct(1, { name: "Too late" }),
+      (error) => error.statusCode === 409
+    );
+  } finally {
+    fakeProductModel.findUnique = realFindUnique;
+  }
+
+  // The database row was not changed.
+  assert.equal(products[0].name, "Active soap");
+  assert.equal(calls.length, 0);
+});
+
+// ---- Review fix 2: partial updates keep the other fields ----------------
+test("PUT with only a name keeps price, cost, SKU, category, unit, description", async () => {
+  const res = fakeRes();
+  await productController.updateProduct(
+    { params: { id: "1" }, body: { name: "Renamed soap" } },
+    res
+  );
+
+  assert.equal(res.statusCode, 200);
+  assert.deepEqual(res.body, {
+    id: 1,
+    name: "Renamed soap",
+    sku: "SOAP-1",
+    category_id: 3,
+    cost_price: 300,
+    selling_price: 500,
+    unit: "bar",
+    description: "Lavender",
+    isActive: true,
+  });
+});
+
+test("PUT accepts a price of 0 and stores 0, not null", async () => {
+  const product = await productService.updateProduct(1, {
+    selling_price: 0,
+    cost_price: "0",
+  });
+
+  assert.equal(product.selling_price, 0);
+  assert.equal(product.cost_price, 0);
+});
+
+test("PUT converts number fields sent as text", async () => {
+  const product = await productService.updateProduct(1, {
+    selling_price: "750",
+    category_id: "4",
+  });
+
+  assert.equal(product.selling_price, 750);
+  assert.equal(product.category_id, 4);
+  assert.equal(product.cost_price, 300); // not sent, so unchanged
+});
+
+test("PUT can still clear a field when null is sent on purpose", async () => {
+  const product = await productService.updateProduct(1, { category_id: null });
+
+  assert.equal(product.category_id, null);
+  assert.equal(product.selling_price, 500);
+});
+
+test("PUT with an empty body changes nothing and returns the product", async () => {
+  const product = await productService.updateProduct(1, {});
+
+  assert.equal(product.name, "Active soap");
+  assert.equal(calls.length, 0);
+});
+
+test("PUT with an empty body on a retired product still returns 409", async () => {
+  await assert.rejects(
+    productService.updateProduct(2, {}),
+    (error) => error.statusCode === 409
+  );
+});
+
+test("a renamed product can still be sold (its price was kept)", async () => {
+  await productService.updateProduct(1, { name: "Renamed soap" });
+  const sale = await saleService.createSale({
+    userId: 5,
+    items: [{ productId: 1, quantity: 1 }],
+  });
+
+  assert.equal(sale.total_amount, 500);
+});
+
+// ---- Review fix 3: the seller comes from the login, not the body --------
+test("createSale saves the logged-in user, ignoring userId in the body", async () => {
+  const res = fakeRes();
+  await saleController.createSale(
+    {
+      user: { id: 7, role: "STAFF" },
+      body: { userId: 1, items: [{ productId: 1, quantity: 1 }] },
+    },
+    res
+  );
+
+  assert.equal(res.statusCode, 201);
+  assert.equal(savedSales.length, 1);
+  assert.equal(savedSales[0].user_id, 7);
+});
+
+test("createSale without a user id is rejected and saves nothing", async () => {
+  await assert.rejects(
+    saleService.createSale({ items: [{ productId: 1, quantity: 1 }] }),
+    /logged-in user is required/
+  );
+  assert.equal(savedSales.length, 0);
 });
