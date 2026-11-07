@@ -17,18 +17,23 @@ const jsFiles = (dir) =>
 test("no console output mentions tokens, JWTs or roles", () => {
   const found = [];
   for (const file of jsFiles(srcDir)) {
-    fs.readFileSync(file, "utf8").split(/\r?\n/).forEach((line, i) => {
-      if (/console\./.test(line) && /token|jwt|decoded|role|access/i.test(line)) {
-        found.push(`${path.relative(srcDir, file)}:${i + 1}: ${line.trim()}`);
-      }
-    });
+    fs.readFileSync(file, "utf8")
+      .split(/\r?\n/)
+      .forEach((line, i) => {
+        if (
+          /console\./.test(line) &&
+          /token|jwt|decoded|role|access/i.test(line)
+        ) {
+          found.push(`${path.relative(srcDir, file)}:${i + 1}: ${line.trim()}`);
+        }
+      });
   }
   assert.deepEqual(found, []);
 });
 
 test("middleware files contain no console.log at all", () => {
   const found = jsFiles(path.join(srcDir, "middleware")).filter((file) =>
-    /console\.log/.test(fs.readFileSync(file, "utf8"))
+    /console\.log/.test(fs.readFileSync(file, "utf8")),
   );
   assert.deepEqual(found, []);
 });

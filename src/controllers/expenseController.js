@@ -35,9 +35,7 @@ const getExpenses = async (req, res) => {
 // GET BY ID
 const getExpenseById = async (req, res) => {
   try {
-    const expense = await expenseService.getExpenseById(
-      req.params.id
-    );
+    const expense = await expenseService.getExpenseById(req.params.id);
 
     res.status(200).json({
       message: "Expense retrieved successfully",
@@ -53,10 +51,7 @@ const getExpenseById = async (req, res) => {
 // UPDATE
 const updateExpense = async (req, res) => {
   try {
-    const expense = await expenseService.updateExpense(
-      req.params.id,
-      req.body
-    );
+    const expense = await expenseService.updateExpense(req.params.id, req.body);
 
     res.status(200).json({
       message: "Expense updated successfully",

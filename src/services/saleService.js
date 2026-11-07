@@ -43,15 +43,11 @@ const createSale = async ({ userId, items }) => {
       }
 
       if (!product.isActive) {
-        throw new Error(
-          `Product ${productId} is inactive and cannot be sold`
-        );
+        throw new Error(`Product ${productId} is inactive and cannot be sold`);
       }
 
       if (product.selling_price === null) {
-        throw new Error(
-          `Selling price is not set for product ${productId}`
-        );
+        throw new Error(`Selling price is not set for product ${productId}`);
       }
 
       const inventory = await tx.inventory.findUnique({
@@ -61,14 +57,12 @@ const createSale = async ({ userId, items }) => {
       });
 
       if (!inventory) {
-        throw new Error(
-          `Inventory not found for product ${productId}`
-        );
+        throw new Error(`Inventory not found for product ${productId}`);
       }
 
       if (inventory.quantity < quantity) {
         throw new Error(
-          `Insufficient stock for product ${productId}. Available quantity: ${inventory.quantity}`
+          `Insufficient stock for product ${productId}. Available quantity: ${inventory.quantity}`,
         );
       }
 

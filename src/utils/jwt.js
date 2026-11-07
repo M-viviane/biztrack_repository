@@ -7,15 +7,15 @@ const generateToken = (user) => {
       id: user.id,
       email: user.email,
       role_id: user.role_id,
-      role: user.roles ? user.roles.name : null
+      role: user.roles ? user.roles.name : null,
     },
     env.JWT_SECRET,
     {
-      expiresIn: "1d"
-    }
+      expiresIn: "1d",
+    },
   );
 };
 
 module.exports = {
-  generateToken
+  generateToken,
 };

@@ -16,22 +16,16 @@ router.post("/register", authController.register);
 // Login
 router.post("/login", authController.login);
 
-
 // ===============================
 // PROTECTED ROUTES
 // ===============================
 
 // Current user: returns the logged-in user's own details
-router.get(
-  "/profile",
-  authMiddleware,
-  (req, res) => {
-    res.status(200).json({
-      message: "You are authenticated",
-      user: req.user
-    });
-  }
-);
-
+router.get("/profile", authMiddleware, (req, res) => {
+  res.status(200).json({
+    message: "You are authenticated",
+    user: req.user,
+  });
+});
 
 module.exports = router;

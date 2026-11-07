@@ -1,4 +1,3 @@
-
 const prisma = require("../config/prisma");
 
 // =========================
@@ -42,7 +41,8 @@ const getSalesSummary = async () => {
     }
 
     salesByDate[date].numberOfSales += 1;
-    salesByDate[date].totalAmount += amount;`1`
+    salesByDate[date].totalAmount += amount;
+    `1`;
   }
 
   return {
@@ -152,4 +152,3 @@ module.exports = {
   getRevenue,
   getProfit,
 };
-

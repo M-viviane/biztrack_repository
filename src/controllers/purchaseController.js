@@ -17,7 +17,6 @@ const createPurchase = async (req, res) => {
   }
 };
 
-
 // GET ALL
 const getPurchases = async (req, res) => {
   try {
@@ -35,13 +34,10 @@ const getPurchases = async (req, res) => {
   }
 };
 
-
 // GET ONE
 const getPurchaseById = async (req, res) => {
   try {
-    const purchase = await purchaseService.getPurchaseById(
-      req.params.id
-    );
+    const purchase = await purchaseService.getPurchaseById(req.params.id);
 
     res.status(200).json({
       message: "Purchase retrieved successfully",
@@ -55,13 +51,12 @@ const getPurchaseById = async (req, res) => {
   }
 };
 
-
 // UPDATE
 const updatePurchase = async (req, res) => {
   try {
     const purchase = await purchaseService.updatePurchase(
       req.params.id,
-      req.body
+      req.body,
     );
 
     res.status(200).json({
@@ -76,13 +71,10 @@ const updatePurchase = async (req, res) => {
   }
 };
 
-
 // DELETE
 const deletePurchase = async (req, res) => {
   try {
-    const purchase = await purchaseService.deletePurchase(
-      req.params.id
-    );
+    const purchase = await purchaseService.deletePurchase(req.params.id);
 
     res.status(200).json({
       message: "Purchase deleted successfully",
@@ -95,7 +87,6 @@ const deletePurchase = async (req, res) => {
     });
   }
 };
-
 
 module.exports = {
   createPurchase,

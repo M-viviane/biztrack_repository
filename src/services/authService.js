@@ -9,12 +9,11 @@ const { generateToken } = require("../utils/jwt");
 // ===============================
 
 const registerUser = async ({ name, email, password }) => {
-
   // Check if user already exists
   const existingUser = await prisma.users.findUnique({
     where: {
-      email
-    }
+      email,
+    },
   });
 
   if (existingUser) {
@@ -24,8 +23,8 @@ const registerUser = async ({ name, email, password }) => {
   // Find STAFF role
   const staffRole = await prisma.roles.findFirst({
     where: {
-      name: "STAFF"
-    }
+      name: "STAFF",
+    },
   });
 
   // Make sure STAFF role exists
@@ -42,11 +41,11 @@ const registerUser = async ({ name, email, password }) => {
       name,
       email,
       password: hashedPassword,
-      role_id: staffRole.id
+      role_id: staffRole.id,
     },
     include: {
-      roles: true
-    }
+      roles: true,
+    },
   });
 
   // Remove password from response
@@ -55,21 +54,19 @@ const registerUser = async ({ name, email, password }) => {
   return userWithoutPassword;
 };
 
-
 // ===============================
 // LOGIN USER
 // ===============================
 
 const loginUser = async ({ email, password }) => {
-
   // Find user by email and include role
   const user = await prisma.users.findUnique({
     where: {
-      email
+      email,
     },
     include: {
-      roles: true
-    }
+      roles: true,
+    },
   });
 
   // User not found
@@ -83,10 +80,7 @@ const loginUser = async ({ email, password }) => {
   }
 
   // Compare password
-  const passwordMatch = await bcrypt.compare(
-    password,
-    user.password
-  );
+  const passwordMatch = await bcrypt.compare(password, user.password);
 
   // Wrong password
   if (!passwordMatch) {
@@ -101,12 +95,11 @@ const loginUser = async ({ email, password }) => {
 
   return {
     user: userWithoutPassword,
-    token
+    token,
   };
 };
 
-
 module.exports = {
   registerUser,
-  loginUser
+  loginUser,
 };

@@ -1,4 +1,3 @@
-
 const prisma = require("../config/prisma");
 
 const allowedCategories = [
@@ -21,7 +20,7 @@ const createExpense = async (data) => {
 
   if (!allowedCategories.includes(category)) {
     throw new Error(
-      "Invalid category. Use RENT, ELECTRICITY, TRANSPORT, INTERNET or OTHER"
+      "Invalid category. Use RENT, ELECTRICITY, TRANSPORT, INTERNET or OTHER",
     );
   }
 
@@ -41,9 +40,7 @@ const createExpense = async (data) => {
       category,
       description: description || null,
       amount: amountNumber,
-      expenseDate: expenseDate
-        ? new Date(expenseDate)
-        : new Date(),
+      expenseDate: expenseDate ? new Date(expenseDate) : new Date(),
     },
   });
 

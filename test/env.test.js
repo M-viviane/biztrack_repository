@@ -48,22 +48,28 @@ test("an invalid PORT is rejected", () => {
 
 // ---- DATABASE_URL ------------------------------------------------------
 test("DATABASE_URL is required and must be a postgresql:// URL", () => {
-  assert.match(problemsWith({ JWT_SECRET: valid.JWT_SECRET }), /DATABASE_URL is required/);
+  assert.match(
+    problemsWith({ JWT_SECRET: valid.JWT_SECRET }),
+    /DATABASE_URL is required/,
+  );
   assert.match(
     problemsWith({ ...valid, DATABASE_URL: "mysql://x@localhost/db" }),
-    /postgresql:\/\//
+    /postgresql:\/\//,
   );
 });
 
 // ---- JWT_SECRET --------------------------------------------------------
 test("JWT_SECRET is required", () => {
-  assert.match(problemsWith({ DATABASE_URL: valid.DATABASE_URL }), /JWT_SECRET is required/);
+  assert.match(
+    problemsWith({ DATABASE_URL: valid.DATABASE_URL }),
+    /JWT_SECRET is required/,
+  );
 });
 
 test("JWT_SECRET shorter than 32 characters is rejected", () => {
   assert.match(
     problemsWith({ ...valid, JWT_SECRET: "a".repeat(31) }),
-    /at least 32 characters/
+    /at least 32 characters/,
   );
   assert.equal(problemsWith({ ...valid, JWT_SECRET: "a".repeat(32) }), "");
 });
@@ -71,7 +77,7 @@ test("JWT_SECRET shorter than 32 characters is rejected", () => {
 test("the placeholder secret from .env.example is rejected", () => {
   assert.match(
     problemsWith({ ...valid, JWT_SECRET: "replace-with-a-long-random-secret" }),
-    /placeholder/
+    /placeholder/,
   );
 });
 
@@ -94,17 +100,24 @@ test("CORS_ORIGINS is split into a list of URLs", () => {
 });
 
 test("CORS_ORIGINS entries that are not URLs are rejected", () => {
-  assert.match(problemsWith({ ...valid, CORS_ORIGINS: "not-a-url" }), /CORS_ORIGINS/);
+  assert.match(
+    problemsWith({ ...valid, CORS_ORIGINS: "not-a-url" }),
+    /CORS_ORIGINS/,
+  );
 });
 
 test("CORS_ORIGINS is required in production", () => {
   assert.match(
     problemsWith({ ...valid, NODE_ENV: "production" }),
-    /CORS_ORIGINS is required in production/
+    /CORS_ORIGINS is required in production/,
   );
   assert.equal(
-    problemsWith({ ...valid, NODE_ENV: "production", CORS_ORIGINS: "https://app.example.com" }),
-    ""
+    problemsWith({
+      ...valid,
+      NODE_ENV: "production",
+      CORS_ORIGINS: "https://app.example.com",
+    }),
+    "",
   );
 });
 
@@ -138,8 +151,17 @@ test("server.js exits with code 1 and explains why when config is missing", () =
 
 // ---- .env.example ------------------------------------------------------
 test(".env.example lists every variable with placeholders, no real secrets", () => {
-  const example = fs.readFileSync(path.join(__dirname, "..", ".env.example"), "utf8");
-  for (const name of ["NODE_ENV", "PORT", "DATABASE_URL", "JWT_SECRET", "CORS_ORIGINS"]) {
+  const example = fs.readFileSync(
+    path.join(__dirname, "..", ".env.example"),
+    "utf8",
+  );
+  for (const name of [
+    "NODE_ENV",
+    "PORT",
+    "DATABASE_URL",
+    "JWT_SECRET",
+    "CORS_ORIGINS",
+  ]) {
     assert.match(example, new RegExp(`^${name}=`, "m"), `${name} missing`);
   }
   assert.match(example, /USER:PASSWORD/);

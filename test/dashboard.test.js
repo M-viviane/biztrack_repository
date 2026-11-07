@@ -36,7 +36,10 @@ const fakePrisma = {
       const productFilter = args.where && args.where.product;
       return inventory
         .filter((item) =>
-          matchesProduct(products.find((p) => p.id === item.productId), productFilter)
+          matchesProduct(
+            products.find((p) => p.id === item.productId),
+            productFilter,
+          ),
         )
         .map((item) => ({ quantity: item.quantity }));
     },

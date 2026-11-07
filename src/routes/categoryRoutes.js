@@ -10,7 +10,7 @@ router.get(
   "/",
   authMiddleware,
   roleMiddleware("ADMIN", "MANAGER"),
-  categoryController.getCategories
+  categoryController.getCategories,
 );
 
 module.exports = router;

@@ -6,9 +6,11 @@ const dashboardController = require("../controllers/dashboardController");
 const authMiddleware = require("../middleware/authMiddleware");
 const roleMiddleware = require("../middleware/roleMiddleware");
 
-router.get("/", 
-    authMiddleware,
-    roleMiddleware("ADMIN","MANAGER"),
-    dashboardController.getDashboard);
+router.get(
+  "/",
+  authMiddleware,
+  roleMiddleware("ADMIN", "MANAGER"),
+  dashboardController.getDashboard,
+);
 
 module.exports = router;

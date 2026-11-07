@@ -12,7 +12,7 @@ router.get(
   "/",
   authMiddleware,
   roleMiddleware("ADMIN", "MANAGER", "STAFF"),
-  productController.getProducts
+  productController.getProducts,
 );
 
 // GET PRODUCT BY ID
@@ -21,7 +21,7 @@ router.get(
   "/:id",
   authMiddleware,
   roleMiddleware("ADMIN", "MANAGER", "STAFF"),
-  productController.getProductById
+  productController.getProductById,
 );
 
 // CREATE PRODUCT
@@ -30,7 +30,7 @@ router.post(
   "/",
   authMiddleware,
   roleMiddleware("ADMIN", "MANAGER"),
-  productController.createProduct
+  productController.createProduct,
 );
 
 // UPDATE PRODUCT
@@ -39,7 +39,7 @@ router.put(
   "/:id",
   authMiddleware,
   roleMiddleware("ADMIN", "MANAGER"),
-  productController.updateProduct
+  productController.updateProduct,
 );
 
 // DELETE PRODUCT
@@ -48,7 +48,7 @@ router.delete(
   "/:id",
   authMiddleware,
   roleMiddleware("ADMIN"),
-  productController.deleteProduct
+  productController.deleteProduct,
 );
 
 // RESTORE A RETIRED PRODUCT
@@ -57,7 +57,7 @@ router.patch(
   "/:id/restore",
   authMiddleware,
   roleMiddleware("ADMIN"),
-  productController.restoreProduct
+  productController.restoreProduct,
 );
 
 module.exports = router;

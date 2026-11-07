@@ -18,15 +18,15 @@ const getAllUsers = async () => {
         select: {
           id: true,
           name: true,
-          description: true
-        }
-      }
-    }
+          description: true,
+        },
+      },
+    },
   });
 
   return users;
 };
 
 module.exports = {
-  getAllUsers
+  getAllUsers,
 };

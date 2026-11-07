@@ -20,25 +20,21 @@ const schema = z
       .enum(["development", "test", "production"])
       .default("development"),
 
-    PORT: z.coerce
-      .number()
-      .int()
-      .min(1)
-      .max(65535)
-      .default(5000),
+    PORT: z.coerce.number().int().min(1).max(65535).default(5000),
 
     DATABASE_URL: z
       .string({ error: "DATABASE_URL is required" })
       .regex(
         /^postgres(ql)?:\/\/.+/,
-        "DATABASE_URL must be a postgresql:// connection string"
+        "DATABASE_URL must be a postgresql:// connection string",
       ),
 
     JWT_SECRET: z
       .string({ error: "JWT_SECRET is required" })
       .min(32, "JWT_SECRET must be at least 32 characters")
       .refine((value) => value !== EXAMPLE_SECRET, {
-        message: "JWT_SECRET is still the example placeholder; set a real secret",
+        message:
+          "JWT_SECRET is still the example placeholder; set a real secret",
       }),
 
     // Comma-separated list of websites allowed to call the API,
@@ -50,16 +46,24 @@ const schema = z
         value
           .split(",")
           .map((origin) => origin.trim())
-          .filter(Boolean)
+          .filter(Boolean),
       )
-      .pipe(z.array(z.url({ message: "each CORS_ORIGINS entry must be a full URL, e.g. https://app.example.com" }))),
+      .pipe(
+        z.array(
+          z.url({
+            message:
+              "each CORS_ORIGINS entry must be a full URL, e.g. https://app.example.com",
+          }),
+        ),
+      ),
   })
   .refine(
-    (config) => config.NODE_ENV !== "production" || config.CORS_ORIGINS.length > 0,
+    (config) =>
+      config.NODE_ENV !== "production" || config.CORS_ORIGINS.length > 0,
     {
       path: ["CORS_ORIGINS"],
       message: "CORS_ORIGINS is required in production",
-    }
+    },
   );
 
 // Checks a set of variables and returns the config, or throws an error
@@ -69,10 +73,14 @@ const parseEnv = (source) => {
 
   if (!result.success) {
     const problems = result.error.issues
-      .map((issue) => `  - ${issue.path.join(".") || "config"}: ${issue.message}`)
+      .map(
+        (issue) => `  - ${issue.path.join(".") || "config"}: ${issue.message}`,
+      )
       .join("\n");
 
-    throw new Error(`Invalid configuration, the app will not start:\n${problems}`);
+    throw new Error(
+      `Invalid configuration, the app will not start:\n${problems}`,
+    );
   }
 
   return result.data;

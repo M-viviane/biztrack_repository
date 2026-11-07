@@ -21,7 +21,6 @@ const createCategory = async (data) => {
   return category;
 };
 
-
 // =========================
 // GET ALL ACTIVE CATEGORIES
 // =========================
@@ -41,7 +40,6 @@ const getCategories = async () => {
 
   return categories;
 };
-
 
 // =========================
 // GET CATEGORY BY ID
@@ -64,7 +62,6 @@ const getCategoryById = async (id) => {
 
   return category;
 };
-
 
 // =========================
 // UPDATE CATEGORY
@@ -95,7 +92,6 @@ const updateCategory = async (id, data) => {
   return category;
 };
 
-
 // =========================
 // DELETE CATEGORY
 // SOFT DELETE
@@ -124,7 +120,6 @@ const deleteCategory = async (id) => {
 
   return category;
 };
-
 
 // =========================
 // EXPORT

@@ -14,7 +14,6 @@ const createProduct = async (req, res) => {
   }
 };
 
-
 // GET - Get all products
 const getProducts = async (req, res) => {
   try {
@@ -28,7 +27,6 @@ const getProducts = async (req, res) => {
     });
   }
 };
-
 
 // GET - Get one product
 const getProductById = async (req, res) => {
@@ -62,7 +60,6 @@ const getProductById = async (req, res) => {
   }
 };
 
-
 // PUT - Update product
 const updateProduct = async (req, res) => {
   try {
@@ -90,7 +87,6 @@ const updateProduct = async (req, res) => {
     });
   }
 };
-
 
 // DELETE - Delete product
 const deleteProduct = async (req, res) => {
@@ -123,7 +119,6 @@ const deleteProduct = async (req, res) => {
   }
 };
 
-
 // PATCH - Restore a retired product
 const restoreProduct = async (req, res) => {
   try {
@@ -154,7 +149,6 @@ const restoreProduct = async (req, res) => {
     });
   }
 };
-
 
 module.exports = {
   createProduct,
