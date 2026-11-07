@@ -12,7 +12,12 @@ let products;
 let calls;
 
 const fakeProductModel = {
-  findUnique: async ({ where }) => products.find((p) => p.id === where.id) || null,
+  // Like the real database: every condition in `where` must match
+  // (e.g. id AND isActive).
+  findUnique: async ({ where }) =>
+    products.find((p) =>
+      Object.entries(where).every(([key, value]) => p[key] === value)
+    ) || null,
   update: async ({ where, data }) => {
     calls.push({ method: "update", where, data });
     const product = products.find((p) => p.id === where.id);
@@ -135,7 +140,11 @@ test("DELETE retires the product with update, not delete", async () => {
   assert.equal(res.statusCode, 200);
   assert.equal(res.body.product.isActive, false);
   assert.deepEqual(calls, [
-    { method: "update", where: { id: 1 }, data: { isActive: false } },
+    {
+      method: "updateMany",
+      where: { id: 1, isActive: true },
+      data: { isActive: false },
+    },
   ]);
   // The row still exists, so past sales can still reference it.
   assert.ok(products.find((p) => p.id === 1));
@@ -238,7 +247,11 @@ test("PATCH restore brings a retired product back with update", async () => {
   assert.equal(res.statusCode, 200);
   assert.equal(res.body.product.isActive, true);
   assert.deepEqual(calls, [
-    { method: "update", where: { id: 2 }, data: { isActive: true } },
+    {
+      method: "updateMany",
+      where: { id: 2, isActive: false },
+      data: { isActive: true },
+    },
   ]);
 });
 
@@ -416,4 +429,88 @@ test("createSale without a user id is rejected and saves nothing", async () => {
     /logged-in user is required/
   );
   assert.equal(savedSales.length, 0);
+});
+
+// ---- Review item 5: GET /api/products/:id -------------------------------
+test("GET returns 400 for an id that is not a number", async () => {
+  const res = fakeRes();
+  await productController.getProductById(
+    { params: { id: "abc" }, user: { role: "ADMIN" } },
+    res
+  );
+
+  assert.equal(res.statusCode, 400);
+});
+
+test("GET lets an ADMIN look up a retired product", async () => {
+  const res = fakeRes();
+  await productController.getProductById(
+    { params: { id: "2" }, user: { role: "ADMIN" } },
+    res
+  );
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.isActive, false);
+});
+
+test("GET hides a retired product from MANAGER and STAFF (404)", async () => {
+  for (const role of ["MANAGER", "STAFF"]) {
+    const res = fakeRes();
+    await productController.getProductById(
+      { params: { id: "2" }, user: { role } },
+      res
+    );
+    assert.equal(res.statusCode, 404, role);
+  }
+});
+
+test("GET still returns an active product to everyone", async () => {
+  const res = fakeRes();
+  await productController.getProductById(
+    { params: { id: "1" }, user: { role: "STAFF" } },
+    res
+  );
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.name, "Active soap");
+});
+
+// ---- Review: delete/restore are atomic and report no-ops ----------------
+test("DELETE on an already retired product returns 409 and writes nothing", async () => {
+  const res = fakeRes();
+  await productController.deleteProduct({ params: { id: "2" } }, res);
+
+  assert.equal(res.statusCode, 409);
+  assert.match(res.body.error, /already retired/);
+  assert.equal(calls.length, 0);
+});
+
+test("PATCH restore on an active product returns 409 and writes nothing", async () => {
+  const res = fakeRes();
+  await productController.restoreProduct({ params: { id: "1" } }, res);
+
+  assert.equal(res.statusCode, 409);
+  assert.match(res.body.error, /already active/);
+  assert.equal(calls.length, 0);
+});
+
+test("DELETE never throws a 500 if the product vanishes mid-request", async () => {
+  // A plain update on a missing row would throw Prisma error P2025.
+  // updateMany just reports count 0, which becomes a clean 404.
+  const res = fakeRes();
+  await productController.deleteProduct({ params: { id: "999" } }, res);
+
+  assert.equal(res.statusCode, 404);
+});
+
+// ---- Review: PORT comes from the environment ----------------------------
+test("server.js reads PORT from the environment", () => {
+  const fs = require("node:fs");
+  const server = fs.readFileSync(
+    path.join(__dirname, "..", "src", "server.js"),
+    "utf8"
+  );
+
+  assert.match(server, /process\.env\.PORT/);
+  assert.doesNotMatch(server, /listen\(5000/);
 });

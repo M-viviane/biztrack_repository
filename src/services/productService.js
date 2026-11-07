@@ -41,12 +41,17 @@ const getProducts = async () => {
 
 
 // GET PRODUCT BY ID
-const getProductById = async (id) => {
+// Retired products are hidden unless includeRetired is true
+// (used for admins, so they can look one up before restoring it).
+const getProductById = async (id, { includeRetired = false } = {}) => {
+  const where = { id: Number(id) };
+
+  if (!includeRetired) {
+    where.isActive = true;
+  }
+
   const product = await prisma.product.findUnique({
-    where: {
-      id: Number(id),
-      isActive: true
-    }
+    where
   });
 
   return product;
@@ -139,58 +144,54 @@ const updateProduct = async (id, data) => {
 };
 
 
-// DELETE PRODUCT (SOFT DELETE)
-// The row is kept so past sales and purchases still point to it.
-// Returns null when no product has this id.
-const deleteProduct = async (id) => {
-  const existing = await prisma.product.findUnique({
+// Switches a product between active and retired with ONE conditional
+// write: the row only changes if it is still in the starting state.
+// - changed          -> returns the product
+// - no such product  -> returns null (404)
+// - already in the target state -> throws a 409, and nothing is written
+const setProductActive = async (id, isActive, alreadyMessage) => {
+  const productId = Number(id);
+
+  const result = await prisma.product.updateMany({
     where: {
-      id: Number(id)
+      id: productId,
+      isActive: !isActive
+    },
+    data: {
+      isActive
     }
   });
 
-  if (!existing) {
+  const product = await prisma.product.findUnique({
+    where: { id: productId }
+  });
+
+  if (!product) {
     return null;
   }
 
-  const product = await prisma.product.update({
-    where: {
-      id: Number(id)
-    },
-    data: {
-      isActive: false
-    }
-  });
+  if (result.count === 0) {
+    const error = new Error(alreadyMessage);
+    error.statusCode = 409;
+    throw error;
+  }
 
   return product;
 };
+
+
+// DELETE PRODUCT (SOFT DELETE)
+// The row is kept so past sales and purchases still point to it.
+// Returns null when no product has this id; 409 if already retired.
+const deleteProduct = async (id) =>
+  setProductActive(id, false, "Product is already retired");
 
 
 // RESTORE PRODUCT (UNDO SOFT DELETE)
 // Brings a retired product back so it can be sold and purchased again.
-// Returns null when no product has this id.
-const restoreProduct = async (id) => {
-  const existing = await prisma.product.findUnique({
-    where: {
-      id: Number(id)
-    }
-  });
-
-  if (!existing) {
-    return null;
-  }
-
-  const product = await prisma.product.update({
-    where: {
-      id: Number(id)
-    },
-    data: {
-      isActive: true
-    }
-  });
-
-  return product;
-};
+// Returns null when no product has this id; 409 if already active.
+const restoreProduct = async (id) =>
+  setProductActive(id, true, "Product is already active");
 
 
 module.exports = {

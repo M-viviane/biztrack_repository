@@ -35,7 +35,17 @@ const getProductById = async (req, res) => {
   try {
     const id = Number(req.params.id);
 
-    const product = await productService.getProductById(id);
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({
+        message: "Invalid product id",
+      });
+    }
+
+    // Admins can also see retired products (isActive: false),
+    // so they can decide whether to restore one.
+    const includeRetired = Boolean(req.user && req.user.role === "ADMIN");
+
+    const product = await productService.getProductById(id, { includeRetired });
 
     if (!product) {
       return res.status(404).json({
@@ -106,7 +116,7 @@ const deleteProduct = async (req, res) => {
       product,
     });
   } catch (error) {
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       message: "Failed to delete product",
       error: error.message,
     });
@@ -138,7 +148,7 @@ const restoreProduct = async (req, res) => {
       product,
     });
   } catch (error) {
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       message: "Failed to restore product",
       error: error.message,
     });
