@@ -23,5 +23,3 @@ router.get("/:id",
   getSupplierById);
 
 module.exports = router;
-authMiddleware,
-roleMiddleware("ADMIN","MANAGER","STAFF")

@@ -1,8 +1,12 @@
 const prisma = require("../config/prisma");
 
 const getDashboard = async () => {
-  // Total products
-  const totalProducts = await prisma.product.count();
+  // Total products (retired products are not counted)
+  const totalProducts = await prisma.product.count({
+    where: {
+      isActive: true,
+    },
+  });
 
   // Total sales
   const totalSales = await prisma.sales.count();
@@ -28,8 +32,14 @@ const getDashboard = async () => {
   // Profit
   const profit = totalRevenue - totalExpenses;
 
-  // Get all inventory records
+  // Get inventory records of active products only, so retired products
+  // do not add to stock totals or trigger low-stock alerts
   const inventory = await prisma.inventory.findMany({
+    where: {
+      product: {
+        isActive: true,
+      },
+    },
     select: {
       quantity: true,
     },
